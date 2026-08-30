@@ -5,7 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "motorControl/app.h"
+#include "app.h"
 
 // Application cycle in milliseconds
 static const int APPLICATION_CYCLE_MS = 250;
