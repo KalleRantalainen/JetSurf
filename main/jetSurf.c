@@ -5,7 +5,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "app.h"
+#include "motorControl_app.h"
+
+// TODO: Create two threads.
+// Thread 1: Should run the real time application loop
+// Thread 2: Should run logging loop and maybe handle any 
+//           BLE <-> Mobile connection?
 
 // Application cycle in milliseconds
 static const int APPLICATION_CYCLE_MS = 250;
