@@ -1,6 +1,9 @@
+#include <stdio.h>
+
 #include "motorControl_app.h"
 
 #include "motorControl.h"
+#include "outputSignals.h"
 
 static Motor leftMotor;
 static Motor rightMotor;
@@ -20,8 +23,10 @@ static void writeAll(void)
 {
     // Repeatedly set the motor speed.
     // (set to 0 FOR NOW)
-    setSpeed(0, &leftMotor);
-    setSpeed(0, &rightMotor);
+    printf("Motor throttle: ");
+    printf("%d\n", outputSignal_throttle);
+    setSpeed(outputSignal_throttle, &leftMotor);
+    setSpeed(outputSignal_throttle, &rightMotor);
 }
 
 /**
