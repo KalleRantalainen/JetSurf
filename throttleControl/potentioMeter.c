@@ -29,8 +29,8 @@ void potentiometerInit(Potentiometer *pot, gpio_num_t gpio)
     }
 
     // Map the GPIO pin to the ADC unit and channel used by the ESP32.
-    int unit = 0;
-    int channel = 0;
+    adc_unit_t unit = ADC_UNIT_1;
+    adc_channel_t channel = ADC_CHANNEL_0;
     if (adc_oneshot_io_to_channel(gpio, &unit, &channel) != ESP_OK) {
         adc_oneshot_del_unit(pot->handle);
         pot->handle = NULL;
@@ -38,12 +38,12 @@ void potentiometerInit(Potentiometer *pot, gpio_num_t gpio)
     }
 
     // Save the resolved ADC unit and channel on the potentiometer instance.
-    pot->unitId = (adc_unit_t)unit;
-    pot->channel = (adc_channel_t)channel;
+    pot->unitId = unit;
+    pot->channel = channel;
 
     // Configure the ADC channel with wide input range and 12-bit resolution.
     adc_oneshot_chan_cfg_t channelConfig = {
-        .atten = ADC_ATTEN_DB_11,
+        .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_12,
     };
 
