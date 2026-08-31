@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 
 #include "motorControl_app.h"
+#include "throttleControl_app.h"
 
 // TODO: Create two threads.
 // Thread 1: Should run the real time application loop
@@ -20,11 +21,13 @@ static void applicationTimerCallback(void *arg)
     (void)arg;
 
     motorControl_appCyclicEntryPoint();
+    throttleControl_appCyclicEntryPoint();
 }
 
 static void applicationInit(void)
 {
     motorControl_appInitAll();
+    throttleControl_appInitAll();
 }
 
 void app_main(void)
