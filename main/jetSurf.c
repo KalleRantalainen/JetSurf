@@ -7,6 +7,7 @@
 
 #include "motorControl_app.h"
 #include "throttleControl_app.h"
+#include "logger_app.h"
 
 // TODO: Create two threads.
 // Thread 1: Should run the real time application loop
@@ -28,6 +29,18 @@ static void applicationTimerCallback(void *arg)
     throttleControl_appCyclicEntryPoint();
 }
 
+static void loggerTask(void *arg)
+{
+    (void)arg;
+
+    logger_appInitAll();
+
+    while (1) {
+        logger_appCyclicEntryPoint();
+        vTaskDelay(pdMS_TO_TICKS(APPLICATION_CYCLE_MS));
+    }
+}
+
 /**
  * Initialize all the applications
  */
@@ -44,6 +57,9 @@ void app_main(void)
 {
     // Initialize all the applications first
     applicationInit();
+
+    // Start the logging task. This keeps the real-time timer separate from the queue drain.
+    xTaskCreate(&loggerTask, "loggerTask", 4096, NULL, 5, NULL);
 
     // Create a periodic timer for the real time control loop
     esp_timer_handle_t periodicTimer;
