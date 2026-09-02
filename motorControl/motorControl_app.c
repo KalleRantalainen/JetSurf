@@ -4,6 +4,7 @@
 
 #include "motorControl.h"
 #include "outputSignals.h"
+#include "logger.h"
 
 static Motor leftMotor;
 static Motor rightMotor;
@@ -22,9 +23,7 @@ static void readAll(void)
 static void writeAll(void)
 {
     // Repeatedly set the motor speed.
-    // (set to 0 FOR NOW)
-    printf("Motor throttle: ");
-    printf("%d\n", outputSignal_throttle);
+    LOG_INFO("motorControl", "Motor throttle: %d\n", outputSignal_throttle);
     setSpeed(outputSignal_throttle, &leftMotor);
     setSpeed(outputSignal_throttle, &rightMotor);
 }

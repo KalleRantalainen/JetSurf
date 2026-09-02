@@ -15,6 +15,7 @@ typedef int log_level_t;
 // Each log entry must contains this info
 typedef struct {
     log_level_t level;
+    char timestamp[32];
     char source[32];
     char message[192];
 } log_entry_t;

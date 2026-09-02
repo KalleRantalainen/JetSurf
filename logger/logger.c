@@ -4,11 +4,24 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
 // Log queue, all messages added to this queue first
 static QueueHandle_t s_logQueue = NULL;
+
+/**
+ * Create a timestamp from the current monotonic clock time.
+ * This is captured when logLine() is called. Timestamp in seconds.
+ * @param buffer the pointer to the buffer to which to write the timestamp to
+ * @param bufferSize size of the timestamp buffer
+ */
+static void logger_formatTimestamp(char *buffer, size_t bufferSize)
+{
+    uint64_t nowS = (uint64_t)(esp_timer_get_time() / 1'000'000ULL);
+    snprintf(buffer, bufferSize, "%llu ms", (unsigned long long)nowS);
+}
 
 /**
  * Convert log level to its string presenstation
@@ -72,11 +85,17 @@ bool logLine(log_level_t level, const char *source, const char *fmt, ...)
     log_entry_t entry;
     memset(&entry, 0, sizeof(entry));
 
+    // Capture the current time at the moment the log call was made.
+    logger_formatTimestamp(entry.timestamp, sizeof(entry.timestamp));
+
     // Set the entry source
     entry.level = level;
     snprintf(entry.source, sizeof(entry.source), "%s", source);
 
-    // Set the entry message
+    // Set the entry message.
+    // vsnprintf safely truncates to the reserved 192-byte array
+    // and returns a null-terminated string, so longer messages are cut off
+    // without causing a buffer overflow or runtime error.
     va_list args;
     va_start(args, fmt);
     vsnprintf(entry.message, sizeof(entry.message), fmt, args);
@@ -99,6 +118,6 @@ void logger_drainQueue(void)
     log_entry_t entry;
     while (xQueueReceive(s_logQueue, &entry, 0) == pdTRUE) {
         // This is the current sink. Later this can be swapped for SD-card logging.
-        printf("[%s] [%s] %s\n", logLevelToString(entry.level), entry.source, entry.message);
+        printf("[%s] [%s] [%s] %s\n", entry.timestamp, logLevelToString(entry.level), entry.source, entry.message);
     }
 }
