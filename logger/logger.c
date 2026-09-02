@@ -68,20 +68,28 @@ bool logLine(log_level_t level, const char *source, const char *fmt, ...)
         return false;
     }
 
+    // Init log entry
     log_entry_t entry;
     memset(&entry, 0, sizeof(entry));
 
+    // Set the entry source
     entry.level = level;
     snprintf(entry.source, sizeof(entry.source), "%s", source);
 
+    // Set the entry message
     va_list args;
     va_start(args, fmt);
     vsnprintf(entry.message, sizeof(entry.message), fmt, args);
     va_end(args);
 
+    // Put the log line to the queue and return the status
+    // of that.
     return xQueueSend(s_logQueue, &entry, 0) == pdTRUE;
 }
 
+/**
+ * Drain the log queue to the log file
+ */
 void logger_drainQueue(void)
 {
     if (s_logQueue == NULL) {

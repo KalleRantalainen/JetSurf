@@ -29,6 +29,10 @@ static void applicationTimerCallback(void *arg)
     throttleControl_appCyclicEntryPoint();
 }
 
+/**
+ * Run logger task indefinitely. Write the logs periodically
+ * using the application cycle as the period.
+ */
 static void loggerTask(void *arg)
 {
     (void)arg;
