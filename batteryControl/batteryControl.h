@@ -5,13 +5,13 @@
 
 #include "battery.h"
 
-// This provides an interface to read the values of 
-// any battery. Functions here call the canHelpers to
-// get and send CAN data from and to the bus and then
-// interpret that data correctly to get the values
-
-// float readBatterySOC(Battery *battery);
-// float readBatteryCurrent(Battery *battery);
-// and so on...
+// Reads battery SOC, voltage, and current from BMS
+void readBatterySocVoltCur(Battery *battery);
+// Reads the min and max voltages of the cells
+void readBatteryMinMaxCellVolt(Battery *battery);
+// Reads the battery temperature sensors
+void readBatteryTemps(Battery *battery);
+// Reads the individual cell voltages
+void readCellVoltages(Battery *battery);
 
 #endif // BATTERYCONTROL_H_

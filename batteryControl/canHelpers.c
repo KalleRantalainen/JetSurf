@@ -5,12 +5,30 @@
 #include "esp_err.h"
 #include "freertos/queue.h"
 
+// Flag, tells if CAN controller is initialized
 static bool s_canStarted = false;
+// ESP CAN node
 static twai_node_handle_t s_canNode = NULL;
+// All frames received through controller interrupt are 
+// added to this queue
 static QueueHandle_t s_receiveQueue = NULL;
+// Temporary receive buffer for the received payload
 static uint8_t s_receiveBuffer[TWAI_FRAME_MAX_LEN];
+// Temporary storage for a received frame
 static twai_frame_t s_receiveFrame;
 
+/**
+ * Called upon CAN controller receive interrupt
+ *
+ * @param node Handle to the TWAI node (CAN controller) 
+ *             that received the frame.
+ * @param eventData Information about the RX event.
+ *        Currently unused by this callback.
+ * @param userContext User-provided context pointer passed
+ *                    when registering the callback. Currently unused.
+ * @return true if a higher-priority FreeRTOS task was woken 
+ *         by this callback, false otherwise.
+ */
 static bool canHelpers_onReceive(twai_node_handle_t node,
 							 const twai_rx_done_event_data_t *eventData,
 							 void *userContext)
@@ -34,17 +52,28 @@ static bool canHelpers_onReceive(twai_node_handle_t node,
 	return false;
 }
 
+/**
+ * Initialize the ESP32 CAN controller.
+ * @param txPin the physical TX pin the transceiver TX is connected to
+ * @param rxPin the physical RX pin the transceiver RX is connected t0
+ * @return true if initialization is succesfull or already initialized
+ *         false if something went wrong in the initialization
+ */
 bool canHelpers_init(gpio_num_t txPin, gpio_num_t rxPin)
 {
+    // If already initialized, return true and do nothing
 	if (s_canStarted) {
 		return true;
 	}
 
+    // Create RX queue fitting 16 CAN frames
 	s_receiveQueue = xQueueCreate(16, sizeof(canHelpers_frame_t));
 	if (s_receiveQueue == NULL) {
 		return false;
 	}
 
+    // Configure the CAN controller to work with 250
+    // kbaud CAN bus.
 	twai_onchip_node_config_t nodeConfig = {0};
 	nodeConfig.io_cfg.tx = txPin;
 	nodeConfig.io_cfg.rx = rxPin;
@@ -60,6 +89,7 @@ bool canHelpers_init(gpio_num_t txPin, gpio_num_t rxPin)
 		return false;
 	}
 
+    // Set up the temporary storages for the RX frames
 	s_receiveFrame.buffer = s_receiveBuffer;
 	s_receiveFrame.buffer_len = sizeof(s_receiveBuffer);
 	twai_event_callbacks_t callbacks = {0};
@@ -76,10 +106,14 @@ bool canHelpers_init(gpio_num_t txPin, gpio_num_t rxPin)
 		return false;
 	}
 
+    // Init success, return true
 	s_canStarted = true;
 	return true;
 }
 
+/**
+ * Destruct everything related to CAN
+*/
 void canHelpers_deinit(void)
 {
 	if (!s_canStarted) {
@@ -94,6 +128,14 @@ void canHelpers_deinit(void)
 	s_canStarted = false;
 }
 
+/**
+ * Send a single CAN frame to the bus
+ * @param id CAN frame's id
+ * @param data frame's payload, maximum of 8 bytes
+ * @param dataLenght DLC of the frame, length of the payload in bytes, max 8
+ * @param timeoutTicks maximum waittime to wait for the frame to be accepted
+ * @return true if the frame was sent, false otherwise
+ */
 bool canHelpers_send(uint32_t id, const uint8_t *data, uint8_t dataLength,
 					 TickType_t timeoutTicks)
 {
@@ -101,6 +143,7 @@ bool canHelpers_send(uint32_t id, const uint8_t *data, uint8_t dataLength,
 		return false;
 	}
 
+    // Construct the message
 	twai_frame_t message = {0};
 	message.header.id = id;
 	message.header.ide = true;
@@ -108,10 +151,17 @@ bool canHelpers_send(uint32_t id, const uint8_t *data, uint8_t dataLength,
 	message.buffer = (uint8_t *)data;
 	message.buffer_len = dataLength;
 
+    // Send the message and return the status
 	return twai_node_transmit(s_canNode, &message,
 							  (int)pdTICKS_TO_MS(timeoutTicks)) == ESP_OK;
 }
 
+/**
+ * Receive a frame from the local software queue
+ * @param frame the frame to which to store the RX data
+ * @param timeoutTicks maximum time to wait for a frame
+ * @return true if received a frame, false otherwise.
+ */
 bool canHelpers_receive(canHelpers_frame_t *frame, TickType_t timeoutTicks)
 {
 	if (!s_canStarted || frame == NULL || s_receiveQueue == NULL) {

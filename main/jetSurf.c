@@ -28,6 +28,7 @@ static void applicationTimerCallback(void *arg)
 
     motorControl_appCyclicEntryPoint();
     throttleControl_appCyclicEntryPoint();
+    batteryControl_appCyclicEntryPoint();
 }
 
 /**

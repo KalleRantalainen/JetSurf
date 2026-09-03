@@ -7,6 +7,11 @@
 #include "batteryControl.h"
 #include "canHelpers.h"
 
+// One battery has a gray outershell, the other one
+// has a blue shell.
+static Battery grayBattery;
+static Battery blueBattery;
+
 /**
  * Read all application specific signals periodically
  */
@@ -29,10 +34,12 @@ static void writeAll(void)
  */
 void batteryControl_appCyclicEntryPoint(void)
 {
-    // Initialize the CAN controller before sending Daly requests.
+    // Make sure the CAN communication is initialized
     if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
         LOG_ERR("batteryControl", "CAN initialization failed");
     }
+
+
 }
 
 /**
@@ -44,4 +51,10 @@ void batteryControl_appInitAll(void)
     if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
         LOG_ERR("batteryControl", "CAN initialization failed");
     }
+
+    // Initialize the batteries with proper ids and priorities.
+    // The node id of the blue battery's BMS is confiugured to 2,
+    // with daly configurator PC software, the gray is default 1.
+    intializeBattery(&grayBattery, 1, 18);
+    intializeBattery(&blueBattery, 2, 19);
 }
