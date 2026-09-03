@@ -55,6 +55,8 @@ void batteryControl_appInitAll(void)
     // Initialize the batteries with proper ids and priorities.
     // The node id of the blue battery's BMS is confiugured to 2,
     // with daly configurator PC software, the gray is default 1.
-    intializeBattery(&grayBattery, 1, 18);
-    intializeBattery(&blueBattery, 2, 19);
+    // All the message id values are hex, so they need to be hex
+    // here as well.
+    intializeBattery(&grayBattery, 0x01, 0x18);
+    intializeBattery(&blueBattery, 0x02, 0x19);
 }

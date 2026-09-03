@@ -10,8 +10,8 @@
 // correct values during initialization and not changed after that.
 typedef struct {
     // Fixed params
-    uint8_t bmsId;    // 1 for the gray battery's bms, 2 for the blue
-    uint8_t priority; // 18 by default
+    uint8_t bmsId;    // 0x1 for the gray battery's bms, 0x2 for the blue 
+    uint8_t priority; // 0x18 by default
 
     // Variables
     uint16_t cellVoltages[CELLCOUNT]; // Individual cell voltages
