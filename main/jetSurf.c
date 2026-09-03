@@ -7,6 +7,7 @@
 
 #include "motorControl_app.h"
 #include "throttleControl_app.h"
+#include "batteryControl_app.h"
 #include "logger_app.h"
 
 // TODO: Create two threads.
@@ -52,6 +53,7 @@ static void applicationInit(void)
 {
     motorControl_appInitAll();
     throttleControl_appInitAll();
+    batteryControl_appInitAll();
 }
 
 /**
