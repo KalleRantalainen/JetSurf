@@ -2,6 +2,8 @@
 #include "canHelpers.h"
 #include "logger.h"
 
+#include "freertos/task.h"
+
 // The Daly BMS id'S follow a pattern. When querying
 // data from the BMS, the frame id is 0xaabbccdd where:
 // - aa = priotity, example 0x18
@@ -18,21 +20,26 @@ static uint8_t ownId = 0x40;
  */
 void readBatterySocVoltCur(Battery *battery)
 {
+    if (battery == NULL) {
+        LOG_ERR("batteryControl", "Cannot read SocVoltCur for a NULL battery");
+        return;
+    }
+
     // To read values from the bms, a read request has to be sent.
     // The payload of the request is 8 bytes of zeros.
-    uint8_t dlc = 8;
-    uint8_t data[dlc] = {0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t dataQueryId = 90; // 90 stands for SOC, total voltage, and current
+    const uint8_t dlc = 8;
+    const uint8_t data[8] = {0};
+    const uint8_t dataQueryId = 0x90; // 90 stands for SOC, total voltage, and current
 
     // Construct the query frame id
-    uint32_t canId = 
-        ((uint32_t)battery->prio  << 24) |
-        ((uint32_t)0x90           << 16) |
+    uint32_t canId =
+        ((uint32_t)battery->priority << 24) |
+        ((uint32_t)dataQueryId       << 16) |
         ((uint32_t)battery->bmsId << 8)  |
         ((uint32_t)ownId);
 
     // Send the message
-    bool_t sendSuccess = canHelpers_send(
+    bool sendSuccess = canHelpers_send(
         canId,              // CAN ID
         data,               // payload
         dlc,                // payload length
@@ -43,34 +50,72 @@ void readBatterySocVoltCur(Battery *battery)
     if (sendSuccess) {
         // Init a structure for the reception
         canHelpers_frame_t recvFrame;
-        // Receive a frame
-        bool_t receiveSuccess = canHelpers_receive(&recvFrame, pdMS_TO_TICKS(100))
-        
-        // Extract data from the recived frame, if recived something
-        // if (receiveSuccess) {
-        //     typedef struct {
-        //         uint32_t id;
-        //         bool extended;
-        //         uint8_t dataLength;
-        //         uint8_t data[TWAI_FRAME_MAX_LEN];
-        //     } canHelpers_frame_t;
+        const TickType_t timeoutTicks = pdMS_TO_TICKS(100);
+        const TickType_t startTicks = xTaskGetTickCount();
+        // Construct an expected response id. The own id and
+        // bms id are expected to be flipped in the response.
+        const uint32_t expectedResponseId =
+            ((uint32_t)battery->priority << 24) |
+            ((uint32_t)dataQueryId       << 16) |
+            ((uint32_t)ownId             << 8)  |
+            ((uint32_t)battery->bmsId);
+        bool receiveSuccess = false;
 
-        // TODO: Check that the recived frame id is what it is expected to be.
-        // Here is how that should work:
-        // So the example message sent would be
-        // 18900140 8 00 00 00 00 00 00 00 00
-        // And the response to this would be
-        // 18904001 8 02 15 00 00 75 30 03 D8
+        // Ignore unrelated frames until the expected BMS response arrives
+        // or the overall timeout expires.
+        while ((xTaskGetTickCount() - startTicks) < timeoutTicks) {
+            TickType_t elapsedTicks = xTaskGetTickCount() - startTicks;
+            TickType_t remainingTicks = timeoutTicks - elapsedTicks;
 
-        // Then read the data from the payload. First two bytes is 10*totalVoltage
-        // so in the example voltage would be 0x0215 = 533 = 53.3V
-        // 3rd and 4th bytes are reserved, 00 and 00.
-        // 5th and 6th byte is the current with 30 000 offset and 
-        // multiplied by ten. In the example:
-        // 0x7530 = 30000, then 30000 - 30000 = 0 * 0.1 = 0.0A
-        // negative means pulling current, positive means charging current.
-        // Last two is SOC, multiplied by 10. So in the example:
-        // 0x03D8 = 984 = 98.4%
+            if (!canHelpers_receive(&recvFrame, remainingTicks)) {
+                break;
+            }
+
+            if (recvFrame.extended &&
+                recvFrame.id == expectedResponseId &&
+                recvFrame.dataLength == 8) {
+                receiveSuccess = true;
+                break;
+            }
+        }
+
+        // Extract the response values as big-endian 16-bit fields.
+        if (receiveSuccess) {
+            // Total voltage in the first two bytes.
+            const uint16_t voltageRaw =
+                ((uint16_t)recvFrame.data[0] << 8) | recvFrame.data[1];
+            // Current is in 5th and 6th bytes
+            const uint16_t currentRaw =
+                ((uint16_t)recvFrame.data[4] << 8) | recvFrame.data[5];
+            // SOC value in the last two bytes
+            const uint16_t socRaw =
+                ((uint16_t)recvFrame.data[6] << 8) | recvFrame.data[7];
+
+            // Raw voltage has a multiplier of 10, so divide by 10 to
+            // get the actual voltage
+            const float totalVoltage = voltageRaw / 10.0f;
+            // Current has an offset of 30000, so raw value 30k
+            // corresponds to 0 current. Anything less than 30k
+            // is discharge current (negative) and anything more
+            // than 30k is charge current (positive). Current is 
+            // also multiplied by 10, so divide by 10 to get
+            // the correct float value.
+            const float current = ((int32_t)currentRaw - 30000) / 10.0f;
+            // SOC value is multipled by ten, so divide by 10
+            // to get the soc %.
+            const float soc = socRaw / 10.0f;
+            
+            // Print the values for now. In reality, should update the
+            // battery object and then the application signals should be
+            // written from there.
+            LOG_INFO("batteryControl",
+                     "BMS %u: voltage=%.1f V, current=%.1f A, SOC=%.1f%%",
+                     battery->bmsId, totalVoltage, current, soc);
+        } else {
+            LOG_ERR("batteryControl",
+                    "No valid SocVoltCur response from BMS %u",
+                    battery->bmsId);
+        }
     } else {
         LOG_ERR("batteryControl", "Failed to send SocVoltCur query frame!");
     }
