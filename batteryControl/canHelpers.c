@@ -1,9 +1,11 @@
 #include "canHelpers.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "esp_err.h"
 #include "freertos/queue.h"
+#include "logger.h"
 
 // Flag, tells if CAN controller is initialized
 static bool s_canStarted = false;
@@ -84,6 +86,7 @@ bool canHelpers_init(gpio_num_t txPin, gpio_num_t rxPin)
 
 	esp_err_t result = twai_new_node_onchip(&nodeConfig, &s_canNode);
 	if (result != ESP_OK) {
+		printf("[CAN] Failed to create TWAI node: %s\n", esp_err_to_name(result));
 		vQueueDelete(s_receiveQueue);
 		s_receiveQueue = NULL;
 		return false;
@@ -99,6 +102,8 @@ bool canHelpers_init(gpio_num_t txPin, gpio_num_t rxPin)
 		result = twai_node_enable(s_canNode);
 	}
 	if (result != ESP_OK) {
+		printf("[CAN] Failed to configure or enable TWAI node: %s\n",
+		       esp_err_to_name(result));
 		twai_node_delete(s_canNode);
 		s_canNode = NULL;
 		vQueueDelete(s_receiveQueue);
@@ -107,6 +112,8 @@ bool canHelpers_init(gpio_num_t txPin, gpio_num_t rxPin)
 	}
 
     // Init success, return true
+	printf("[CAN] TWAI started: TX GPIO=%d, RX GPIO=%d, bitrate=%lu\n",
+	       txPin, rxPin, (unsigned long)nodeConfig.bit_timing.bitrate);
 	s_canStarted = true;
 	return true;
 }
@@ -152,8 +159,14 @@ bool canHelpers_send(uint32_t id, const uint8_t *data, uint8_t dataLength,
 	message.buffer_len = dataLength;
 
     // Send the message and return the status
-	return twai_node_transmit(s_canNode, &message,
-							  (int)pdTICKS_TO_MS(timeoutTicks)) == ESP_OK;
+	esp_err_t result = twai_node_transmit(
+		s_canNode, &message, (int)pdTICKS_TO_MS(timeoutTicks));
+	if (result != ESP_OK) {
+		LOG_ERR("canHelpers", "TWAI transmit failed for id=0x%08lx: %s",
+			(unsigned long)id, esp_err_to_name(result));
+	}
+
+	return result == ESP_OK;
 }
 
 /**

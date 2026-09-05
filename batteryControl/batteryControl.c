@@ -38,6 +38,10 @@ void readBatterySocVoltCur(Battery *battery)
         ((uint32_t)battery->bmsId << 8)  |
         ((uint32_t)ownId);
 
+    LOG_INFO("batteryControl",
+             "Sending SocVoltCur query: id=0x%08lx, BMS=0x%02x, priority=0x%02x, own=0x%02x",
+             (unsigned long)canId, battery->bmsId, battery->priority, ownId);
+
     // Send the message
     bool sendSuccess = canHelpers_send(
         canId,              // CAN ID
@@ -50,7 +54,7 @@ void readBatterySocVoltCur(Battery *battery)
     if (sendSuccess) {
         // Init a structure for the reception
         canHelpers_frame_t recvFrame;
-        const TickType_t timeoutTicks = pdMS_TO_TICKS(100);
+        const TickType_t timeoutTicks = pdMS_TO_TICKS(200);
         const TickType_t startTicks = xTaskGetTickCount();
         // Construct an expected response id. The own id and
         // bms id are expected to be flipped in the response.
@@ -61,6 +65,11 @@ void readBatterySocVoltCur(Battery *battery)
             ((uint32_t)battery->bmsId);
         bool receiveSuccess = false;
 
+        LOG_INFO("batteryControl",
+                 "Query sent; waiting for response id=0x%08lx for %lu ms",
+                 (unsigned long)expectedResponseId,
+                 (unsigned long)pdTICKS_TO_MS(timeoutTicks));
+
         // Ignore unrelated frames until the expected BMS response arrives
         // or the overall timeout expires.
         while ((xTaskGetTickCount() - startTicks) < timeoutTicks) {
@@ -68,8 +77,19 @@ void readBatterySocVoltCur(Battery *battery)
             TickType_t remainingTicks = timeoutTicks - elapsedTicks;
 
             if (!canHelpers_receive(&recvFrame, remainingTicks)) {
+                LOG_WARN("batteryControl",
+                         "No CAN frame received before timeout; expected id=0x%08lx",
+                         (unsigned long)expectedResponseId);
                 break;
             }
+
+            LOG_INFO("batteryControl",
+                     "Received CAN frame: id=0x%08lx, extended=%s, dlc=%u, data=%02x %02x %02x %02x %02x %02x %02x %02x",
+                     (unsigned long)recvFrame.id,
+                     recvFrame.extended ? "yes" : "no",
+                     recvFrame.dataLength,
+                     recvFrame.data[0], recvFrame.data[1], recvFrame.data[2], recvFrame.data[3],
+                     recvFrame.data[4], recvFrame.data[5], recvFrame.data[6], recvFrame.data[7]);
 
             if (recvFrame.extended &&
                 recvFrame.id == expectedResponseId &&
@@ -77,6 +97,10 @@ void readBatterySocVoltCur(Battery *battery)
                 receiveSuccess = true;
                 break;
             }
+
+            LOG_WARN("batteryControl",
+                     "Ignoring CAN frame: expected extended id=0x%08lx with dlc=8",
+                     (unsigned long)expectedResponseId);
         }
 
         // Extract the response values as big-endian 16-bit fields.
@@ -117,7 +141,9 @@ void readBatterySocVoltCur(Battery *battery)
                     battery->bmsId);
         }
     } else {
-        LOG_ERR("batteryControl", "Failed to send SocVoltCur query frame!");
+        LOG_ERR("batteryControl",
+                "Failed to send SocVoltCur query frame: id=0x%08lx, BMS=0x%02x",
+                (unsigned long)canId, battery->bmsId);
     }
 
 }
