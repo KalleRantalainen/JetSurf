@@ -42,6 +42,8 @@ void batteryControl_appCyclicEntryPoint(void)
 
     if (canCalled < 1) {
         readBatterySocVoltCur(&blueBattery);
+        readBatteryChargeStatus(&blueBattery);
+        readBatteryTemps(&blueBattery);
         canCalled++;
     }
 }

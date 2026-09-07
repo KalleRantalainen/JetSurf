@@ -20,8 +20,17 @@ typedef struct {
     uint16_t soc;                     // Battery charge
     uint16_t temp1;                   // Temperature sensor 1 reading
     uint16_t temp2;                   // Temperature sensor 2 reading
+    int16_t maxTemperature;           // Maximum temperature in degrees Celsius
+    int16_t minTemperature;           // Minimum temperature in degrees Celsius
+    uint8_t maxTemperatureSensor;     // Sensor number reporting maxTemperature
+    uint8_t minTemperatureSensor;     // Sensor number reporting minTemperature
     uint16_t maxCellVoltage;          // Maximum cell voltage
     uint16_t minCellVoltage;          // Minimum cell volatge
+    uint8_t batteryState;             // 0 idle, 1 charging, 2 discharging
+    uint8_t chargeMosfet;             // 0 closed/on, 1 open/off
+    uint8_t dischargeMosfet;          // 0 closed/on, 1 open/off
+    uint8_t cycleLife;                // Number of full charge/discharge cycles
+    uint32_t remainingCapacity;       // Remaining capacity in mAh
 } Battery;
 
 // Sets bmsId and CAN message priority for the battery
