@@ -28,6 +28,7 @@ static volatile bool connected;
 static uint16_t connectionHandle = BLE_HS_CONN_HANDLE_NONE;
 static uint16_t characteristicValueHandle;
 static uint16_t cccdHandle;
+static uint16_t throttleServiceEndHandle;
 
 static int gapEvent(struct ble_gap_event *event, void *arg);
 static void startScan(void);
@@ -77,7 +78,7 @@ static int subscribeComplete(uint16_t connHandle,
 static int descriptorDiscoveryComplete(uint16_t connHandle,
                                        const struct ble_gatt_error *error,
                                        uint16_t chrDefHandle,
-                                       struct ble_gatt_dsc *descriptor,
+                                       const struct ble_gatt_dsc *descriptor,
                                        void *arg)
 {
     (void)chrDefHandle;
@@ -135,8 +136,8 @@ static int characteristicDiscoveryComplete(uint16_t connHandle,
         characteristicValueHandle = characteristic->val_handle;
         cccdHandle = 0;
         const int rc = ble_gattc_disc_all_dscs(connHandle,
-                                               characteristic->def_handle,
-                                               characteristic->next_chr_def_handle,
+                                               characteristic->val_handle,
+                                               throttleServiceEndHandle,
                                                descriptorDiscoveryComplete, NULL);
         if (rc != 0) {
             ESP_LOGE(TAG, "Failed to discover throttle descriptors: %d", rc);
@@ -163,6 +164,7 @@ static int serviceDiscoveryComplete(uint16_t connHandle,
     }
 
     if (service != NULL) {
+        throttleServiceEndHandle = service->end_handle;
         const int rc = ble_gattc_disc_chrs_by_uuid(connHandle,
                                                    service->start_handle,
                                                    service->end_handle,
@@ -260,12 +262,12 @@ static int gapEvent(struct ble_gap_event *event, void *arg)
                                     serviceDiscoveryComplete, NULL);
         break;
 
-    case BLE_GAP_EVENT_NOTIFY:
-        if (event->notify.conn_handle == connectionHandle &&
-            event->notify.attr_handle == characteristicValueHandle &&
-            event->notify.om != NULL &&
-            OS_MBUF_PKTLEN(event->notify.om) == 1) {
-            os_mbuf_copydata(event->notify.om, 0, 1, (void *)&latestThrottle);
+    case BLE_GAP_EVENT_NOTIFY_RX:
+        if (event->notify_rx.conn_handle == connectionHandle &&
+            event->notify_rx.attr_handle == characteristicValueHandle &&
+            event->notify_rx.om != NULL &&
+            OS_MBUF_PKTLEN(event->notify_rx.om) == 1) {
+            os_mbuf_copydata(event->notify_rx.om, 0, 1, (void *)&latestThrottle);
         }
         break;
 

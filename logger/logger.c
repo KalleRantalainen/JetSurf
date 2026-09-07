@@ -20,7 +20,7 @@ static QueueHandle_t s_logQueue = NULL;
 static void logger_formatTimestamp(char *buffer, size_t bufferSize)
 {
     uint64_t nowS = (uint64_t)(esp_timer_get_time() / 1'000'000ULL);
-    snprintf(buffer, bufferSize, "%llu ms", (unsigned long long)nowS);
+    snprintf(buffer, bufferSize, "%llu s", (unsigned long long)nowS);
 }
 
 /**
