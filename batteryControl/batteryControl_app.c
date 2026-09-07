@@ -2,6 +2,8 @@
 
 #include "batteryControl_app.h"
 
+#include "esp_timer.h"
+
 #include "logger.h"
 
 #include "batteryControl.h"
@@ -41,9 +43,18 @@ void batteryControl_appCyclicEntryPoint(void)
     }
 
     if (canCalled < 1) {
+        const int64_t startTimeUs = esp_timer_get_time();
+
         readBatterySocVoltCur(&blueBattery);
         readBatteryChargeStatus(&blueBattery);
         readBatteryTemps(&blueBattery);
+
+        const int64_t elapsedTimeUs = esp_timer_get_time() - startTimeUs;
+        LOG_INFO("batteryControl",
+                 "Battery CAN reads completed in %lld.%03lld ms",
+                 (long long)(elapsedTimeUs / 1000),
+                 (long long)(elapsedTimeUs % 1000));
+
         canCalled++;
     }
 }

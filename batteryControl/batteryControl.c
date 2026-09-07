@@ -148,7 +148,7 @@ void readBatteryMinMaxCellVolt(Battery *battery)
 void readBatteryChargeStatus(Battery *battery)
 {
     canHelpers_frame_t recvFrame;
-    if (!requestBatteryFrame(battery, 0x91, "ChargeStatus", &recvFrame)) {
+    if (!requestBatteryFrame(battery, 0x93, "ChargeStatus", &recvFrame)) {
         return;
     }
     // Battery state stred in the first byte.
