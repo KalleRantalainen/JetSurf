@@ -9,6 +9,7 @@
 #include "throttleControl_app.h"
 #include "batteryControl_app.h"
 #include "logger_app.h"
+#include "bluetooth_app.h"
 
 // TODO: Create two threads.
 // Thread 1: Should run the real time application loop
@@ -27,6 +28,7 @@ static void applicationTimerCallback(void *arg)
     (void)arg;
 
     motorControl_appCyclicEntryPoint();
+    bluetooth_appCyclicEntryPoint();
     throttleControl_appCyclicEntryPoint();
     batteryControl_appCyclicEntryPoint();
 }
@@ -53,6 +55,7 @@ static void loggerTask(void *arg)
 static void applicationInit(void)
 {
     motorControl_appInitAll();
+    bluetooth_appInitAll();
     throttleControl_appInitAll();
     batteryControl_appInitAll();
 }

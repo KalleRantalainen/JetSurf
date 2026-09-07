@@ -2,19 +2,13 @@
 
 #include "inputSignals.h"
 #include "outputSignals.h"
-#include "potentioMeter.h"
-
-static Potentiometer throttlePot;
 
 /**
  * Read all application specific signals periodically
  */
 static void readAll(void)
 {
-    // Read the scaled potentiometer value
-    const int throttleValue = potentiometerReadThrottle(&throttlePot);
-    // Write the scaled potentiometer value as a throttle signal
-    inputSignal_throttle = (uint16_t)throttleValue;
+    // The Bluetooth application updates the input signal asynchronously.
 }
 
 /**
@@ -41,10 +35,7 @@ void throttleControl_appCyclicEntryPoint(void)
  */
 void throttleControl_appInitAll(void)
 {
-    // Initialize the potentiometer to gpio pin 36
-    potentiometerInit(&throttlePot, GPIO_NUM_36);
-
-    // Initialize the global throttle signals to 0
+    // Initialize the global throttle signals to 0.
     inputSignal_throttle = 0;
     outputSignal_throttle = 0;
 }
