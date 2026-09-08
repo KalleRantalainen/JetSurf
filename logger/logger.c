@@ -7,9 +7,11 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "sdCardModule.h"
 
 // Log queue, all messages added to this queue first
 static QueueHandle_t s_logQueue = NULL;
+static logger_output_t s_output = LOGGER_OUTPUT_TERMINAL;
 
 /**
  * Create a timestamp from the current monotonic clock time.
@@ -45,7 +47,7 @@ static const char *logLevelToString(log_level_t level)
 /**
  * Initialize the logger
  */
-void logger_init(void)
+void logger_init(logger_output_t output)
 {
     if (s_logQueue != NULL) {
         return;
@@ -53,6 +55,11 @@ void logger_init(void)
 
     // Create thread safe log queue for a maximum of 32 log lines
     s_logQueue = xQueueCreate(32, sizeof(log_entry_t));
+    s_output = output;
+    if (s_output == LOGGER_OUTPUT_SD_CARD && !sdCardModule_init()) {
+        printf("SD card logging unavailable; using terminal logging.\n");
+        s_output = LOGGER_OUTPUT_TERMINAL;
+    }
 }
 
 /**
@@ -64,8 +71,10 @@ void logger_deinit(void)
         return;
     }
 
+    logger_drainQueue();
     vQueueDelete(s_logQueue);
     s_logQueue = NULL;
+    sdCardModule_deinit();
 }
 
 /**
@@ -117,7 +126,15 @@ void logger_drainQueue(void)
 
     log_entry_t entry;
     while (xQueueReceive(s_logQueue, &entry, 0) == pdTRUE) {
-        // This is the current sink. Later this can be swapped for SD-card logging.
-        printf("[%s] [%s] [%s] %s\n", entry.timestamp, logLevelToString(entry.level), entry.source, entry.message);
+        char line[sizeof(entry.timestamp) + sizeof(entry.source) + sizeof(entry.message) + 32];
+        int lineLength = snprintf(line, sizeof(line), "[%s] [%s] [%s] %s\n",
+                                  entry.timestamp, logLevelToString(entry.level), entry.source, entry.message);
+        if (s_output == LOGGER_OUTPUT_SD_CARD) {
+            if (lineLength > 0 && !sdCardModule_write(line, (size_t)lineLength)) {
+                printf("SD card write failed; dropping log line.\n");
+            }
+        } else {
+            printf("%s", line);
+        }
     }
 }
