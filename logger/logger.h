@@ -5,9 +5,9 @@
 #include <stdint.h>
 
 // Log levels used by all modules.
-#define LOG_LEVEL_INFO    0
-#define LOG_LEVEL_WARNING 1
-#define LOG_LEVEL_ERROR   2
+#define LOGGER_LEVEL_INFO    0
+#define LOGGER_LEVEL_WARNING 1
+#define LOGGER_LEVEL_ERROR   2
 
 // Logger has two output types, either it
 // outputs to terminal or on SD card
@@ -32,15 +32,15 @@ void logger_init(logger_output_t output);
 void logger_deinit(void);
 
 // Thread-safe log API, used from any application module.
-// Example: logLine(LOG_LEVEL_INFO, "motorControl", "motor rpm is: %d", rpm);
+// Example: logLine(LOGGER_LEVEL_INFO, "motorControl", "motor rpm is: %d", rpm);
 bool logLine(log_level_t level, const char *source, const char *fmt, ...);
 
 // Drain the queued log entries and send them to the configured sink.
 void logger_drainQueue(void);
 
 // Macros can be called to automatically handle the log level
-#define LOG_INFO(source, fmt, ...) logLine(LOG_LEVEL_INFO, source, fmt, ##__VA_ARGS__)
-#define LOG_WARN(source, fmt, ...) logLine(LOG_LEVEL_WARNING, source, fmt, ##__VA_ARGS__)
-#define LOG_ERR(source, fmt, ...) logLine(LOG_LEVEL_ERROR, source, fmt, ##__VA_ARGS__)
+#define LOG_INFO(source, fmt, ...) logLine(LOGGER_LEVEL_INFO, source, fmt, ##__VA_ARGS__)
+#define LOG_WARN(source, fmt, ...) logLine(LOGGER_LEVEL_WARNING, source, fmt, ##__VA_ARGS__)
+#define LOG_ERR(source, fmt, ...) logLine(LOGGER_LEVEL_ERROR, source, fmt, ##__VA_ARGS__)
 
 #endif // LOGGER_H_

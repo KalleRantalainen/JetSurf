@@ -33,11 +33,11 @@ static void logger_formatTimestamp(char *buffer, size_t bufferSize)
 static const char *logLevelToString(log_level_t level)
 {
     switch (level) {
-        case LOG_LEVEL_INFO:
+        case LOGGER_LEVEL_INFO:
             return "INFO";
-        case LOG_LEVEL_WARNING:
+        case LOGGER_LEVEL_WARNING:
             return "WARNING";
-        case LOG_LEVEL_ERROR:
+        case LOGGER_LEVEL_ERROR:
             return "ERROR";
         default:
             return "INFO";

@@ -3,11 +3,13 @@
 #include <string.h>
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
+#include "logger.h"
 
 static const char *TAG = "bleMaster";
 
@@ -22,6 +24,8 @@ static const ble_uuid128_t throttleCharacteristicUuid = BLE_UUID128_INIT(
 
 // Latest throttle value receicved over BLE
 static volatile uint8_t latestThrottle;
+// Time of the most recent valid throttle notification, in milliseconds.
+static volatile uint32_t latestThrottleTimestampMs;
 // Connection status of the link, true if connected
 static volatile bool connected;
 // BLE connection handle
@@ -268,6 +272,7 @@ static int gapEvent(struct ble_gap_event *event, void *arg)
             event->notify_rx.om != NULL &&
             OS_MBUF_PKTLEN(event->notify_rx.om) == 1) {
             os_mbuf_copydata(event->notify_rx.om, 0, 1, (void *)&latestThrottle);
+            latestThrottleTimestampMs = (uint32_t)(esp_timer_get_time() / 1000ULL);
         }
         break;
 
@@ -341,6 +346,7 @@ void bleMaster_init(void)
     ESP_ERROR_CHECK(nvsResult);
 
     latestThrottle = 0;
+    latestThrottleTimestampMs = 0;
     connected = false;
     ble_hs_cfg.sync_cb = onHostSync;
     nimble_port_init();
@@ -352,6 +358,17 @@ void bleMaster_init(void)
  */
 uint8_t bleMaster_getThrottle(void)
 {
+    if (!connected) {
+        return 0;
+    }
+
+    const uint32_t nowMs = (uint32_t)(esp_timer_get_time() / 1000ULL);
+    const uint32_t ageMs = nowMs - latestThrottleTimestampMs;
+    if (ageMs > BLE_MASTER_THROTTLE_TIMEOUT_MS) {
+        LOG_WARN("bluetooth", "BLE throttle value is %d ms old. Setting throttle to 0.\n", ageMs);
+        return 0;
+    }
+    LOG_INFO("bluetooth", "BLE Throttle age: %d ms\n", ageMs);
     return latestThrottle;
 }
 
