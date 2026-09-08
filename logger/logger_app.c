@@ -35,5 +35,5 @@ void logger_appCyclicEntryPoint(void)
 void logger_appInitAll(void)
 {
     // Change this to LOGGER_OUTPUT_SD_CARD when the hardware is connected.
-    logger_init(LOGGER_OUTPUT_TERMINAL);
+    logger_init(LOGGER_OUTPUT_SD_CARD); //LOGGER_OUTPUT_TERMINAL
 }

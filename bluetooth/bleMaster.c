@@ -84,7 +84,7 @@ static int descriptorDiscoveryComplete(uint16_t connHandle,
     (void)chrDefHandle;
     (void)arg;
 
-    if (error->status != 0) {
+    if (error->status != 0 && error->status != BLE_HS_EDONE) {
         ESP_LOGE(TAG, "Failed to discover throttle descriptors: %d", error->status);
         disconnectAndRetry();
         return 0;
@@ -126,7 +126,7 @@ static int characteristicDiscoveryComplete(uint16_t connHandle,
 {
     (void)arg;
 
-    if (error->status != 0) {
+    if (error->status != 0 && error->status != BLE_HS_EDONE) {
         ESP_LOGE(TAG, "Failed to discover throttle characteristic: %d", error->status);
         disconnectAndRetry();
         return 0;
@@ -157,7 +157,7 @@ static int serviceDiscoveryComplete(uint16_t connHandle,
 {
     (void)arg;
 
-    if (error->status != 0) {
+    if (error->status != 0 && error->status != BLE_HS_EDONE) {
         ESP_LOGE(TAG, "Failed to discover throttle service: %d", error->status);
         disconnectAndRetry();
         return 0;

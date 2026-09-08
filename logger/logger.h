@@ -9,6 +9,8 @@
 #define LOG_LEVEL_WARNING 1
 #define LOG_LEVEL_ERROR   2
 
+// Logger has two output types, either it
+// outputs to terminal or on SD card
 typedef enum {
     LOGGER_OUTPUT_TERMINAL,
     LOGGER_OUTPUT_SD_CARD
