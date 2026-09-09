@@ -37,6 +37,7 @@ static void applicationTimerCallback(void *arg)
     bluetooth_appCyclicEntryPoint();
     throttleControl_appCyclicEntryPoint();
     batteryControl_appCyclicEntryPoint();
+    positionTracking_appCyclicEntryPoint();
 }
 
 /**
@@ -90,6 +91,7 @@ static void applicationInit(void)
     bluetooth_appInitAll();
     throttleControl_appInitAll();
     batteryControl_appInitAll();
+    positionTracking_appInitAll();
 }
 
 /**

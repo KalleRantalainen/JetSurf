@@ -4,6 +4,7 @@
 
 #include "inputSignals.h"
 #include "logger.h"
+#include "neoM9Ngps.h"
 
 
 /**
@@ -11,7 +12,13 @@
  */
 static void readAll(void)
 {
-    // TODO: Read the position and speed from the GPS module
+    gps_position_t position;
+    readPosition();
+    if (neoM9Ngps_getPosition(&position)) {
+        LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, speed=%.2f m/s",
+                 position.latitudeDegrees, position.longitudeDegrees,
+                 position.speedMetersPerSecond);
+    }
 }
 
 /**
@@ -26,7 +33,7 @@ static void writeAll(void)
  * Entry for the main interrupt loop. Does everything the
  * applications has to do periodically
  */
-void motorControl_appCyclicEntryPoint(void)
+void positionTracking_appCyclicEntryPoint(void)
 {
     readAll();
     writeAll();
@@ -35,7 +42,7 @@ void motorControl_appCyclicEntryPoint(void)
 /**
  * Initialization function called in the beginning
  */
-void motorControl_appInitAll(void)
+void positionTracking_appInitAll(void)
 {
-    // TODO initialize the GPS module
+    initGps();
 }
