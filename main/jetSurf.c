@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "esp_err.h"
 #include "esp_timer.h"
@@ -8,6 +9,7 @@
 #include "motorControl_app.h"
 #include "throttleControl_app.h"
 #include "batteryControl_app.h"
+#include "canHelpers.h"
 #include "logger_app.h"
 #include "bluetooth_app.h"
 
@@ -18,6 +20,8 @@
 
 // Application cycle in milliseconds
 static const int APPLICATION_CYCLE_MS = 250;
+static esp_timer_handle_t s_periodicTimer;
+static volatile bool s_controlLoopEnabled = true;
 
 /**
  * Real-time control loop. This is run exactly once every
@@ -41,11 +45,53 @@ static void loggerTask(void *arg)
 {
     (void)arg;
 
+    logger_appSetTaskHandle(xTaskGetCurrentTaskHandle());
     logger_appInitAll();
 
     while (1) {
         logger_appCyclicEntryPoint();
         vTaskDelay(pdMS_TO_TICKS(APPLICATION_CYCLE_MS));
+    }
+}
+
+static void stopControlLoop(void)
+{
+    if (!s_controlLoopEnabled) {
+        return;
+    }
+
+    s_controlLoopEnabled = false;
+    ESP_ERROR_CHECK(esp_timer_stop(s_periodicTimer));
+    motorControl_appStop();
+    canHelpers_deinit();
+    logger_appStop();
+    printf("Control loop stopped. Send 'r' to resume.\n");
+}
+
+static void startControlLoop(void)
+{
+    if (s_controlLoopEnabled) {
+        return;
+    }
+
+    logger_appStart();
+    ESP_ERROR_CHECK(esp_timer_start_periodic(s_periodicTimer, APPLICATION_CYCLE_MS * 1000));
+    s_controlLoopEnabled = true;
+    printf("Control loop resumed. Send 's' to stop.\n");
+}
+
+static void controlCommandTask(void *arg)
+{
+    (void)arg;
+
+    printf("Serial control: send 's' to stop, 'r' to resume.\n");
+    while (1) {
+        const int command = getchar();
+        if (command == 's' || command == 'S') {
+            stopControlLoop();
+        } else if (command == 'r' || command == 'R') {
+            startControlLoop();
+        }
     }
 }
 
@@ -69,19 +115,26 @@ void app_main(void)
     applicationInit();
 
     // Start the logging task. This keeps the real-time timer separate from the queue drain.
-    xTaskCreate(&loggerTask, "loggerTask", 4096, NULL, 5, NULL);
+    if (xTaskCreate(&loggerTask, "loggerTask", 4096, NULL, 5, NULL) != pdPASS) {
+        printf("Failed to create logger task.\n");
+        return;
+    }
 
     // Create a periodic timer for the real time control loop
-    esp_timer_handle_t periodicTimer;
     const esp_timer_create_args_t timerArgs = {
         .callback = &applicationTimerCallback,
         .arg = NULL,
         .name = "applicationTimer"
     };
     printf("Starting control loop!\n");
-    ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &periodicTimer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(periodicTimer, APPLICATION_CYCLE_MS * 1000));
+    ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &s_periodicTimer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(s_periodicTimer, APPLICATION_CYCLE_MS * 1000));
     printf("Control loop started!\n");
+
+    if (xTaskCreate(&controlCommandTask, "controlCommandTask", 3072, NULL, 5, NULL) != pdPASS) {
+        printf("Failed to create serial control task.\n");
+        return;
+    }
 
     // Keep-alive loop
     while (1) {

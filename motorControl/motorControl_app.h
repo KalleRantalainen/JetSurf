@@ -5,5 +5,6 @@
 void motorControl_appCyclicEntryPoint(void);
 // Called once when the application starts
 void motorControl_appInitAll(void);
+void motorControl_appStop(void);
 
 #endif // MOTORCONTROL_APP_H_

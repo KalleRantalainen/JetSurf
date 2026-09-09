@@ -9,11 +9,12 @@
 #define LOGGER_LEVEL_WARNING 1
 #define LOGGER_LEVEL_ERROR   2
 
-// Logger has two output types, either it
-// outputs to terminal or on SD card
+// Logger output destinations. Destinations can be combined when both outputs
+// are required.
 typedef enum {
     LOGGER_OUTPUT_TERMINAL,
-    LOGGER_OUTPUT_SD_CARD
+    LOGGER_OUTPUT_SD_CARD,
+    LOGGER_OUTPUT_SD_CARD_AND_TERMINAL
 } logger_output_t;
 
 // Define log level type related to each log line
