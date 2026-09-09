@@ -52,3 +52,4 @@ void motorControl_appInitAll(void)
     setSpeed(0, &leftMotor);
     setSpeed(0, &rightMotor);
 }
+

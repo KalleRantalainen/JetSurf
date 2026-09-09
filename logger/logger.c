@@ -12,6 +12,7 @@
 // Log queue, all messages added to this queue first
 static QueueHandle_t s_logQueue = NULL;
 static logger_output_t s_output = LOGGER_OUTPUT_TERMINAL;
+static volatile bool s_rotationRequested = false;
 
 /**
  * Create a timestamp from the current monotonic clock time.
@@ -56,7 +57,11 @@ void logger_init(logger_output_t output)
     // Create thread safe log queue for a maximum of 32 log lines
     s_logQueue = xQueueCreate(32, sizeof(log_entry_t));
     s_output = output;
-    if (s_output == LOGGER_OUTPUT_SD_CARD && !sdCardModule_init()) {
+    s_rotationRequested = false;
+    const bool sdCardRequested =
+        s_output == LOGGER_OUTPUT_SD_CARD ||
+        s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL;
+    if (sdCardRequested && !sdCardModule_init()) {
         printf("SD card logging unavailable; using terminal logging.\n");
         s_output = LOGGER_OUTPUT_TERMINAL;
     }
@@ -129,12 +134,36 @@ void logger_drainQueue(void)
         char line[sizeof(entry.timestamp) + sizeof(entry.source) + sizeof(entry.message) + 32];
         int lineLength = snprintf(line, sizeof(line), "[%s] [%s] [%s] %s\n",
                                   entry.timestamp, logLevelToString(entry.level), entry.source, entry.message);
-        if (s_output == LOGGER_OUTPUT_SD_CARD) {
-            if (lineLength > 0 && !sdCardModule_write(line, (size_t)lineLength)) {
+        if (lineLength <= 0) {
+            continue;
+        }
+
+        if (s_output == LOGGER_OUTPUT_SD_CARD ||
+            s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) {
+            if (!sdCardModule_write(line, (size_t)lineLength)) {
                 printf("SD card write failed; dropping log line.\n");
             }
-        } else {
+        }
+        if (s_output == LOGGER_OUTPUT_TERMINAL ||
+            s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) {
             printf("%s", line);
         }
     }
+
+    if (s_rotationRequested) {
+        s_rotationRequested = false;
+        if ((s_output == LOGGER_OUTPUT_SD_CARD ||
+             s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) &&
+            !sdCardModule_rotate()) {
+            printf("SD card log rotation failed.\n");
+        }
+    }
+}
+
+/**
+ * Request that the logger task rotate the current SD-card log file.
+ */
+void logger_requestRotation(void)
+{
+    s_rotationRequested = true;
 }

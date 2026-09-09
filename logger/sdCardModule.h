@@ -19,11 +19,15 @@
 #endif
 
 #define SD_CARD_MOUNT_POINT "/sdcard"
+// Write maximum of 10MB per log file.
+#define SD_CARD_MAX_LOG_FILE_SIZE (10U * 1024U * 1024U)
 
 // Function to initialize the sd card
 bool sdCardModule_init(void);
 // Function to write data on the SD card
 bool sdCardModule_write(const char *data, size_t length);
+// Close the current log file and continue logging in the next file.
+bool sdCardModule_rotate(void);
 // Close the current log file and unmount sd card
 void sdCardModule_deinit(void);
 

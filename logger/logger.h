@@ -9,11 +9,12 @@
 #define LOGGER_LEVEL_WARNING 1
 #define LOGGER_LEVEL_ERROR   2
 
-// Logger has two output types, either it
-// outputs to terminal or on SD card
+// Logger output destinations. Destinations can be combined when both outputs
+// are required.
 typedef enum {
     LOGGER_OUTPUT_TERMINAL,
-    LOGGER_OUTPUT_SD_CARD
+    LOGGER_OUTPUT_SD_CARD,
+    LOGGER_OUTPUT_SD_CARD_AND_TERMINAL
 } logger_output_t;
 
 // Define log level type related to each log line
@@ -37,6 +38,9 @@ bool logLine(log_level_t level, const char *source, const char *fmt, ...);
 
 // Drain the queued log entries and send them to the configured sink.
 void logger_drainQueue(void);
+
+// Request a manual SD-card log rotation from the logger task.
+void logger_requestRotation(void);
 
 // Macros can be called to automatically handle the log level
 #define LOG_INFO(source, fmt, ...) logLine(LOGGER_LEVEL_INFO, source, fmt, ##__VA_ARGS__)
