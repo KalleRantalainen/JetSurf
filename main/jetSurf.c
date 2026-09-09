@@ -13,8 +13,10 @@
 #include "batteryControl_app.h"
 #include "canHelpers.h"
 #include "logger_app.h"
-#include "logger.h"
 #include "bluetooth_app.h"
+#include "positionTracking_app.h"
+
+#include "logger.h"
 
 // TODO: Create two threads.
 // Thread 1: Should run the real time application loop
