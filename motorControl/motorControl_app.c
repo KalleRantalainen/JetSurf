@@ -53,8 +53,3 @@ void motorControl_appInitAll(void)
     setSpeed(0, &rightMotor);
 }
 
-void motorControl_appStop(void)
-{
-    setSpeed(0, &leftMotor);
-    setSpeed(0, &rightMotor);
-}
