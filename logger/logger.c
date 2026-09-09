@@ -12,6 +12,7 @@
 // Log queue, all messages added to this queue first
 static QueueHandle_t s_logQueue = NULL;
 static logger_output_t s_output = LOGGER_OUTPUT_TERMINAL;
+static volatile bool s_rotationRequested = false;
 
 /**
  * Create a timestamp from the current monotonic clock time.
@@ -56,6 +57,7 @@ void logger_init(logger_output_t output)
     // Create thread safe log queue for a maximum of 32 log lines
     s_logQueue = xQueueCreate(32, sizeof(log_entry_t));
     s_output = output;
+    s_rotationRequested = false;
     const bool sdCardRequested =
         s_output == LOGGER_OUTPUT_SD_CARD ||
         s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL;
@@ -147,4 +149,21 @@ void logger_drainQueue(void)
             printf("%s", line);
         }
     }
+
+    if (s_rotationRequested) {
+        s_rotationRequested = false;
+        if ((s_output == LOGGER_OUTPUT_SD_CARD ||
+             s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) &&
+            !sdCardModule_rotate()) {
+            printf("SD card log rotation failed.\n");
+        }
+    }
+}
+
+/**
+ * Request that the logger task rotate the current SD-card log file.
+ */
+void logger_requestRotation(void)
+{
+    s_rotationRequested = true;
 }

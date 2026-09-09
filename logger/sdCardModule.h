@@ -26,6 +26,8 @@
 bool sdCardModule_init(void);
 // Function to write data on the SD card
 bool sdCardModule_write(const char *data, size_t length);
+// Close the current log file and continue logging in the next file.
+bool sdCardModule_rotate(void);
 // Close the current log file and unmount sd card
 void sdCardModule_deinit(void);
 

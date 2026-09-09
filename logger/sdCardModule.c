@@ -167,6 +167,26 @@ bool sdCardModule_write(const char *data, size_t length)
 }
 
 /**
+ * Synchronize and close the current log file, then open the next file in this session.
+ * @return true if the current file was closed and the next file was opened successfully
+ */
+bool sdCardModule_rotate(void)
+{
+	if (s_logFile == NULL) {
+		return false;
+	}
+
+	// Synchronize the current file before making the new file active.
+	if (fflush(s_logFile) != 0 || fsync(fileno(s_logFile)) != 0 || fclose(s_logFile) != 0) {
+		s_logFile = NULL;
+		return false;
+	}
+	s_logFile = NULL;
+	s_logFileNumber++;
+	return openNextLogFile();
+}
+
+/**
  * Close the current log file and unmount the SD card.
  */
 void sdCardModule_deinit(void)

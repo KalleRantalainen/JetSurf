@@ -1,4 +1,8 @@
 #include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "esp_err.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -9,6 +13,7 @@
 #include "batteryControl_app.h"
 #include "canHelpers.h"
 #include "logger_app.h"
+#include "logger.h"
 #include "bluetooth_app.h"
 
 // TODO: Create two threads.
@@ -51,6 +56,32 @@ static void loggerTask(void *arg)
 }
 
 /**
+ * Poll monitor input without blocking and request a new SD-card log file when 's' is received.
+ */
+static void logCommandTask(void *arg)
+{
+    (void)arg;
+
+    const int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+    if (flags >= 0) {
+        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+    }
+
+    printf("Serial logging control: send 's' to start a new log file.\n");
+    while (1) {
+        char command;
+        const ssize_t bytesRead = read(STDIN_FILENO, &command, 1);
+        if (bytesRead == 1 && (command == 's' || command == 'S')) {
+            logger_requestRotation();
+            printf("Log rotation requested.\n");
+        } else if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+}
+
+/**
  * Initialize all the applications
  */
 static void applicationInit(void)
@@ -72,6 +103,11 @@ void app_main(void)
     // Start the logging task. This keeps the real-time timer separate from the queue drain.
     if (xTaskCreate(&loggerTask, "loggerTask", 4096, NULL, 5, NULL) != pdPASS) {
         printf("Failed to create logger task.\n");
+        return;
+    }
+
+    if (xTaskCreate(&logCommandTask, "logCommandTask", 3072, NULL, 5, NULL) != pdPASS) {
+        printf("Failed to create log command task.\n");
         return;
     }
 
