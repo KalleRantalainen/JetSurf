@@ -7,11 +7,15 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 
-// GPS pins and baudrate
+// ESP32 UART pins connected to the GPS module:
+// GPS module TX -> ESP32 GPIO16 (ESP32 RX)
+// GPS module RX -> ESP32 GPIO17 (ESP32 TX)
 #define GPS_UART UART_NUM_2
 #define GPS_RX_GPIO GPIO_NUM_16
 #define GPS_TX_GPIO GPIO_NUM_17
-#define GPS_BAUD_RATE 9600
+// Chinese seller says the default baudrate is 9600,
+// but it seems to ne 38400 instead...
+#define GPS_BAUD_RATE 38400
 
 // GPS measurements will contain this data
 typedef struct {

@@ -8,10 +8,22 @@
 #include "esp_timer.h"
 
 static const char *TAG = "neoM9Ngps";
-static char s_sentence[128];
+static char s_sentence[256];
 static size_t s_sentenceLength = 0;
+static bool s_collectingSentence = false;
 static gps_position_t s_position;
 static bool s_initialized = false;
+static uint32_t s_totalBytes = 0;
+static uint32_t s_sentenceCount = 0;
+static uint32_t s_rmcCount = 0;
+static uint32_t s_checksumFailureCount = 0;
+static uint32_t s_invalidSentenceCount = 0;
+static uint32_t s_sentenceOverflowCount = 0;
+static uint32_t s_checksumDiagnosticCount = 0;
+static bool s_rawDiagnosticPrinted = false;
+static uint32_t s_lastDiagnosticMs = 0;
+static int s_lastRxLevel = -1;
+static uint32_t s_rxTransitions = 0;
 
 /**
  * Convert an NMEA coordinate such as 6012.3456 into signed decimal degrees.
@@ -59,32 +71,59 @@ static bool nmeaChecksumIsValid(const char *sentence)
 }
 
 /**
+ * Split an NMEA sentence while preserving empty fields.
+ * strtok() cannot be used here because it removes empty fields, which are
+ * common in RMC sentences when the receiver has no fix.
+ * @param sentence sentence without its line ending
+ * @param fields output array receiving pointers to the fields
+ * @param fieldCapacity number of entries available in fields
+ * @return number of fields found
+ */
+static size_t splitNmeaFields(char *sentence, char **fields, size_t fieldCapacity)
+{
+    size_t fieldCount = 0;
+    char *cursor = sentence + 1;
+
+    while (fieldCount < fieldCapacity) {
+        fields[fieldCount++] = cursor;
+        char *separator = strpbrk(cursor, ",*");
+        if (separator == NULL || *separator == '*') {
+            break;
+        }
+        *separator = '\0';
+        cursor = separator + 1;
+    }
+    return fieldCount;
+}
+
+/**
  * Decode a valid RMC sentence into the latest GPS position structure.
  * RMC supplies fix status, coordinates, speed over ground, and course.
  */
 static void parseRmcSentence(char *sentence)
 {
     if (!nmeaChecksumIsValid(sentence)) {
+        s_checksumFailureCount++;
+        if (s_checksumDiagnosticCount < 3) {
+            ESP_LOGW(TAG, "NMEA checksum failure: %s", sentence);
+            s_checksumDiagnosticCount++;
+        }
         return;
     }
 
     char *fields[13] = {0};
-    char *field = strtok(sentence + 1, ",*");
-    size_t fieldCount = 0;
-    while (field != NULL && fieldCount < 13) {
-        fields[fieldCount++] = field;
-        field = strtok(NULL, ",*");
-    }
+    const size_t fieldCount = splitNmeaFields(sentence, fields, 13);
 
     // RMC fields: type, time, status, latitude, N/S, longitude, E/W,
     // speed in knots, course, date, magnetic variation, E/W, mode.
-    if (fieldCount < 10 ||
-        (strcmp(fields[0], "GNRMC") != 0 && strcmp(fields[0], "GPRMC") != 0) ||
-        fields[2][0] == '\0' || fields[3][0] == '\0' || fields[4][0] == '\0' ||
-        fields[5][0] == '\0' || fields[6][0] == '\0' || fields[7][0] == '\0') {
+    if (fieldCount < 3 ||
+        (strcmp(fields[0], "GNRMC") != 0 && strcmp(fields[0], "GPRMC") != 0 &&
+         strcmp(fields[0], "GLRMC") != 0) || fields[2][0] == '\0') {
+        s_invalidSentenceCount++;
         return;
     }
 
+    s_rmcCount++;
     const bool hasFix = fields[2][0] == 'A';
     s_position.hasFix = hasFix;
     if (!hasFix) {
@@ -92,8 +131,15 @@ static void parseRmcSentence(char *sentence)
         return;
     }
 
+    if (fieldCount < 8 || fields[3][0] == '\0' || fields[4][0] == '\0' ||
+        fields[5][0] == '\0' || fields[6][0] == '\0' || fields[7][0] == '\0') {
+        s_invalidSentenceCount++;
+        return;
+    }
+
     s_position.latitudeDegrees = nmeaCoordinateToDegrees(fields[3], fields[4][0]);
     s_position.longitudeDegrees = nmeaCoordinateToDegrees(fields[5], fields[6][0]);
+    // Speed is in knots, convert to m/s
     s_position.speedMetersPerSecond = strtod(fields[7], NULL) * 0.514444;
     s_position.courseDegrees = strtod(fields[8], NULL);
     s_position.fixTimestampMs = (uint32_t)(esp_timer_get_time() / 1000ULL);
@@ -113,16 +159,39 @@ void initGps(void)
         .source_clk = UART_SCLK_DEFAULT,
     };
 
-    if (uart_driver_install(GPS_UART, 2048, 0, 0, NULL, 0) != ESP_OK ||
-        uart_param_config(GPS_UART, &uartConfig) != ESP_OK ||
-        uart_set_pin(GPS_UART, GPS_TX_GPIO, GPS_RX_GPIO, UART_PIN_NO_CHANGE,
-                     UART_PIN_NO_CHANGE) != ESP_OK) {
-        ESP_LOGE(TAG, "GPS UART initialization failed");
+    esp_err_t error = uart_driver_install(GPS_UART, 2048, 0, 0, NULL, 0);
+    if (error != ESP_OK) {
+        ESP_LOGE(TAG, "GPS UART driver installation failed: %s", esp_err_to_name(error));
+        return;
+    }
+
+    error = uart_param_config(GPS_UART, &uartConfig);
+    if (error != ESP_OK) {
+        ESP_LOGE(TAG, "GPS UART configuration failed: %s", esp_err_to_name(error));
+        return;
+    }
+
+    error = uart_set_pin(GPS_UART, GPS_TX_GPIO, GPS_RX_GPIO, UART_PIN_NO_CHANGE,
+                         UART_PIN_NO_CHANGE);
+    if (error != ESP_OK) {
+        ESP_LOGE(TAG, "GPS UART pin configuration failed: %s", esp_err_to_name(error));
         return;
     }
 
     memset(&s_position, 0, sizeof(s_position));
     s_sentenceLength = 0;
+    s_collectingSentence = false;
+    s_totalBytes = 0;
+    s_sentenceCount = 0;
+    s_rmcCount = 0;
+    s_checksumFailureCount = 0;
+    s_invalidSentenceCount = 0;
+    s_sentenceOverflowCount = 0;
+    s_checksumDiagnosticCount = 0;
+    s_rawDiagnosticPrinted = false;
+    s_lastDiagnosticMs = 0;
+    s_lastRxLevel = gpio_get_level(GPS_RX_GPIO);
+    s_rxTransitions = 0;
     s_initialized = true;
     ESP_LOGI(TAG, "GPS UART initialized on RX=%d TX=%d at %d baud",
              GPS_RX_GPIO, GPS_TX_GPIO, GPS_BAUD_RATE);
@@ -138,29 +207,67 @@ void readPosition(void)
     }
 
     uint8_t bytes[256];
-    const int byteCount = uart_read_bytes(GPS_UART, bytes, sizeof(bytes), 0);
-    for (int index = 0; index < byteCount; index++) {
-        const char character = (char)bytes[index];
-        if (character == '\n') {
-            s_sentence[s_sentenceLength] = '\0';
-            parseRmcSentence(s_sentence);
-            s_sentenceLength = 0;
-        } else if (character != '\r' && s_sentenceLength < sizeof(s_sentence) - 1) {
-            s_sentence[s_sentenceLength++] = character;
-        } else if (s_sentenceLength >= sizeof(s_sentence) - 1) {
-            s_sentenceLength = 0;
+    size_t bufferedBytes = 0;
+    const esp_err_t bufferError = uart_get_buffered_data_len(GPS_UART, &bufferedBytes);
+    int byteCount;
+    do {
+        byteCount = uart_read_bytes(GPS_UART, bytes, sizeof(bytes), 0);
+        s_totalBytes += byteCount > 0 ? (uint32_t)byteCount : 0;
+
+        if (byteCount > 0 && !s_rawDiagnosticPrinted) {
+            ESP_LOG_BUFFER_HEXDUMP(TAG, bytes, byteCount > 32 ? 32 : byteCount, ESP_LOG_WARN);
+            s_rawDiagnosticPrinted = true;
         }
+
+        // Detect whether the physical RX line changes even if UART framing fails.
+        const int currentRxLevel = gpio_get_level(GPS_RX_GPIO);
+        if (currentRxLevel != s_lastRxLevel) {
+            s_rxTransitions++;
+            s_lastRxLevel = currentRxLevel;
+        }
+        for (int index = 0; index < byteCount; index++) {
+            const char character = (char)bytes[index];
+            if (character == '$') {
+                // Start collecting only at an NMEA sentence marker.
+                s_sentenceLength = 0;
+                s_sentence[s_sentenceLength++] = character;
+                s_collectingSentence = true;
+            } else if (character == '\n') {
+                if (s_collectingSentence && s_sentenceLength > 0) {
+                    s_sentence[s_sentenceLength] = '\0';
+                    s_sentenceCount++;
+                    parseRmcSentence(s_sentence);
+                }
+                s_sentenceLength = 0;
+                s_collectingSentence = false;
+            } else if (s_collectingSentence && character != '\r' &&
+                       s_sentenceLength < sizeof(s_sentence) - 1) {
+                s_sentence[s_sentenceLength++] = character;
+            } else if (s_collectingSentence && s_sentenceLength >= sizeof(s_sentence) - 1) {
+                s_sentenceOverflowCount++;
+                s_sentenceLength = 0;
+                s_collectingSentence = false;
+            }
+        }
+    } while (byteCount == (int)sizeof(bytes));
+
+    const uint32_t nowMs = (uint32_t)(esp_timer_get_time() / 1000ULL);
+    if (nowMs - s_lastDiagnosticMs >= 5000U) {
+        ESP_LOGI(TAG, "GPS UART stats: bytes=%lu buffered=%lu rxLevel=%d rxTransitions=%lu sentences=%lu RMC=%lu checksumFailures=%lu overflow=%lu invalid=%lu fix=%s",
+                 (unsigned long)s_totalBytes, (unsigned long)bufferedBytes,
+                 gpio_get_level(GPS_RX_GPIO), (unsigned long)s_rxTransitions,
+                 (unsigned long)s_sentenceCount,
+                 (unsigned long)s_rmcCount, (unsigned long)s_checksumFailureCount,
+                 (unsigned long)s_sentenceOverflowCount,
+                 (unsigned long)s_invalidSentenceCount,
+                 s_position.hasFix ? "yes" : "no");
+        if (bufferError != ESP_OK) {
+            ESP_LOGW(TAG, "Could not query GPS UART buffer: %s", esp_err_to_name(bufferError));
+        }
+        s_lastDiagnosticMs = nowMs;
     }
 }
 
-/**
- * Poll the GPS UART for a newer speed value.
- * RMC contains position and speed together, so this delegates to the same parser.
- */
-void readSpeed(void)
-{
-    readPosition();
-}
 
 /**
  * Copy the latest GPS data into the caller's structure.

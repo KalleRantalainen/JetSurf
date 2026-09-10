@@ -18,6 +18,10 @@ static void readAll(void)
         LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, speed=%.2f m/s",
                  position.latitudeDegrees, position.longitudeDegrees,
                  position.speedMetersPerSecond);
+        LOG_INFO("positionTracking", "GSP course: %.6f, fixTimestamp: %d", position.courseDegrees,
+            position.fixTimestampMs);
+    } else {
+        LOG_INFO("positionTracking", "GPS has no fix.");
     }
 }
 
