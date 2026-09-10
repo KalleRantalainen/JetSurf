@@ -15,8 +15,8 @@ typedef struct {
 
     // Variables
     uint16_t cellVoltages[CELLCOUNT]; // Individual cell voltages
-    uint16_t totalVolatge;            // Total battery voltage
-    int16_t current;                  // Negative when pulling current, positive when charging
+    uint16_t totalVoltage;            // Total battery voltage
+    uint16_t current;                 // Negative when pulling current, positive when charging, offset by 30 000
     uint16_t soc;                     // Battery charge
     uint16_t temp1;                   // Temperature sensor 1 reading
     uint16_t temp2;                   // Temperature sensor 2 reading

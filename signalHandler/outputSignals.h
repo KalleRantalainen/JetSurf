@@ -8,7 +8,17 @@
 // a throttle value.
 // All signals declared here must have a prefix outputSignal_
 
-// Throttle ranges from 0 to 1000
-extern uint16_t outputSignal_throttle;
+/* --- Throttle signals --- */
+extern uint16_t outputSignal_motor1_throttle; // Throttle ranges from 0 to 1000
+extern uint16_t outputSignal_motor2_throttle; // The throttle values for both motors should be the same, no differential throttle
+
+/* --- Software level battery protection signals --- */
+extern bool outputSignal_battery1_currentTooHigh;           // Current drawn from battery 1 is too high
+extern bool outputSignal_battery1_temperatureTooHigh;       // Temperature of either battery 1 temp sensor is too high
+extern bool outputSignal_battery1_voltageDifferenceTooHigh; // Voltage difference between any too cells of battery 1 is too high
+
+extern bool outputSignal_battery2_currentTooHigh;           // Current drawn from battery 2 is too high
+extern bool outputSignal_battery2_temperatureTooHigh;       // Temperature of either battery 2 temp sensor is too high
+extern bool outputSignal_battery2_voltageDifferenceTooHigh; // Voltage difference between any too cells of battery 2 is too high
 
 #endif

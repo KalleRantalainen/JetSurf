@@ -128,6 +128,11 @@ void readBatterySocVoltCur(Battery *battery)
     // SOC is multiplied by 10. Divide by 10 to get the percentage value
     const float soc = socRaw / 10.0f;
 
+    // Write the values to the battery object
+    battery->totalVoltage = voltageRaw;
+    battery->current = currentRaw;
+    battery->soc = socRaw;
+
     LOG_INFO("batteryControl",
              "BMS %u: voltage=%.1f V, current=%.1f A, SOC=%.1f%%",
              battery->bmsId, totalVoltage, current, soc);
