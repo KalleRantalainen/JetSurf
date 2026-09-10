@@ -16,3 +16,8 @@ for example: `idf.py -p /dev/ttyUSB0 flash monitor`
 * In ps: `usbipd list`
 * In ps: `usbipd bind --busid 1-6`
 * In ps: `usbipd attach --wsl --busid 1-6`
+
+## Wiring
+The wiring diagram for the ESP32 inside the surfboard:
+![ESC wiring diagram](images/mainControlWiring.png)
+This diagram does not include the balance lead wiring for the battery nor the wiring of the jetController. That is in the jetController repo [jetController repo](https://github.com/KalleRantalainen/jetSurfController).
