@@ -6,31 +6,28 @@
 #include "logger.h"
 #include "neoM9Ngps.h"
 
-
 /**
- * Read all application specific signals periodically
+ * Write all global signals of this application
  */
-static void readAll(void)
+static void writeGlobal(void)
 {
     gps_position_t position;
-    readPosition();
     if (neoM9Ngps_getPosition(&position)) {
-        LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, speed=%.2f m/s\n",
-                 position.latitudeDegrees, position.longitudeDegrees,
-                 position.speedMetersPerSecond);
-        LOG_INFO("positionTracking", "GSP course: %.6f, fixTimestamp: %d\n", position.courseDegrees,
-            position.fixTimestampMs);
-    } else {
-        LOG_INFO("positionTracking", "GPS has no fix.\n");
-    }
-}
+        // Write some GPS signals as global signals for other applications
+        inputSignal_velocityMetSec = position->speedMetersPerSecond;
+        inputSignal_latitudeDeg = position->latitudeDegrees;
+        inputSignal_longitudeDeg = position->longitudeDegrees;
+        inputSignal_courseDeg = position->courseDegrees;
+        inputSignal_gpsTimestampMs = position->fixTimestampMs;
 
-/**
- * Write all application speicific signals periodically
- */
-static void writeAll(void)
-{
-    // No writes at the moment
+        // Write the signals
+        LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, fixTimestamp: %d\n",
+            inputSignal_latitudeDeg, inputSignal_longitudeDeg, inputSignal_gpsTimestampMs);
+        LOG_INFO("positionTracking", "GPS velocity: %.2f m/s, fixTimestamp: %d\n",
+            inputSignal_velocityMetSec, inputSignal_gpsTimestampMs);
+        LOG_INFO("positionTracking", "GSP course: %.6f, fixTimestamp: %d\n", inputSignal_courseDeg,
+            inputSignal_gpsTimestampMs);
+    }
 }
 
 /**
@@ -39,8 +36,7 @@ static void writeAll(void)
  */
 void positionTracking_appCyclicEntryPoint(void)
 {
-    readAll();
-    writeAll();
+    writeGlobal();
 }
 
 /**
