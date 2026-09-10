@@ -15,13 +15,13 @@ static void readAll(void)
     gps_position_t position;
     readPosition();
     if (neoM9Ngps_getPosition(&position)) {
-        LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, speed=%.2f m/s",
+        LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, speed=%.2f m/s\n",
                  position.latitudeDegrees, position.longitudeDegrees,
                  position.speedMetersPerSecond);
-        LOG_INFO("positionTracking", "GSP course: %.6f, fixTimestamp: %d", position.courseDegrees,
+        LOG_INFO("positionTracking", "GSP course: %.6f, fixTimestamp: %d\n", position.courseDegrees,
             position.fixTimestampMs);
     } else {
-        LOG_INFO("positionTracking", "GPS has no fix.");
+        LOG_INFO("positionTracking", "GPS has no fix.\n");
     }
 }
 
