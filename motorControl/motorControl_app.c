@@ -6,8 +6,8 @@
 #include "outputSignals.h"
 #include "logger.h"
 
-static Motor leftMotor;
-static Motor rightMotor;
+static Motor leftMotor;  // Motor 1, connected to battery 1 "grayBattery"
+static Motor rightMotor; // Motor 2, connected to battery 2 "blueBattery"
 
 /**
  * Read all application specific signals periodically
@@ -23,9 +23,8 @@ static void readAll(void)
 static void writeAll(void)
 {
     // Repeatedly set the motor speed.
-    LOG_INFO("Motor throttle: %d\n", outputSignal_throttle);
-    setSpeed(outputSignal_throttle, &leftMotor);
-    setSpeed(outputSignal_throttle, &rightMotor);
+    setSpeed(outputSignal_motor1_throttle, &leftMotor);
+    setSpeed(outputSignal_motor2_throttle, &rightMotor);
 }
 
 /**

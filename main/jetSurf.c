@@ -35,9 +35,9 @@ static void applicationTimerCallback(void *arg)
 {
     (void)arg;
 
-    motorControl_appCyclicEntryPoint();
     bluetooth_appCyclicEntryPoint();
     throttleControl_appCyclicEntryPoint();
+    motorControl_appCyclicEntryPoint();
     batteryControl_appCyclicEntryPoint();
     positionTracking_appCyclicEntryPoint();
 }

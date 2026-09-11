@@ -22,9 +22,9 @@ static void writeGlobal(void)
     // way the throttle values would vary between the motors
     // but both motors would pull the same amps and they would
     // likely have close to same rpm?
-    uint8_t throttle = getValidThrottle();
+    uint8_t throttle = getProtectedThrottle();
     outputSignal_motor1_throttle = throttle;
-    outputSignal_motor2_throttle = throttle;    
+    outputSignal_motor2_throttle = throttle;
 
     LOG_SIGNAL("Throttle output motor1: %d\n", outputSignal_motor1_throttle);
     LOG_SIGNAL("Throttle output motor2: %d\n", outputSignal_motor2_throttle);

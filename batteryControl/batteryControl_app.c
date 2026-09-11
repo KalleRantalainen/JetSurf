@@ -86,6 +86,8 @@ static void writeGlobal(void)
     LOG_SIGNAL("Battery2 highest temp: %0.1f\n°C", inputSignal_battery2_highestTemp);
     LOG_SIGNAL("Battery2 highest temp sensor: %u\n", inputSignal_battery2_highestTempSensor);
     LOG_SIGNAL("Battery2 cell voltage diff: %0.1f mv\n", inputSignal_battery2_cellVoltageDiff);
+
+    checkProtectionLimits();
 }
 
 /**
