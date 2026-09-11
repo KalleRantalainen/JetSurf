@@ -21,4 +21,4 @@ extern bool outputSignal_battery2_currentTooHigh;           // Current drawn fro
 extern bool outputSignal_battery2_temperatureTooHigh;       // Temperature of either battery 2 temp sensor is too high
 extern bool outputSignal_battery2_voltageDifferenceTooHigh; // Voltage difference between any too cells of battery 2 is too high
 
-#endif
+#endif // OUTPUT_SIGNALS_H

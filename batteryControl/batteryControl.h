@@ -5,6 +5,10 @@
 
 #include "battery.h"
 
+/* These functions below use CAN to read the raw values from
+   the battery. The final values for total voltage for example
+   can be read using functions defined by battery.h */
+   
 // Reads battery SOC, voltage, and current from BMS
 void readBatterySocVoltCur(Battery *battery);
 // Reads the min and max voltages of the cells

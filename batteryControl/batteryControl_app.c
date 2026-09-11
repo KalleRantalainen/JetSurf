@@ -15,26 +15,9 @@ static Battery grayBattery;
 static Battery blueBattery;
 
 /**
- * Read all application specific signals periodically
+ * Read all local signals periodically
  */
-static void readAll(void)
-{
-    // Read.
-}
-
-/**
- * Write all application speicific signals periodically
- */
-static void writeAll(void)
-{
-    // Write
-}
-
-/**
- * Entry for the main interrupt loop. Reads and writes
- * all the application's signals
- */
-void batteryControl_appCyclicEntryPoint(void)
+static void readLocal(void)
 {
     // CAN queries are somewhat slow. The query and response
     // take arounf 4us per bit. Since both contain about 126 bits,
@@ -43,26 +26,52 @@ void batteryControl_appCyclicEntryPoint(void)
     // temperature does not change meaningfully during one application
     // cycle, so it can be queried every 10 cycles for example
     static int cycle = 0;
+
     // Make sure the CAN communication is initialized
     if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
         LOG_ERR("batteryControl", "CAN initialization failed");
     }
 
-    if (canCalled < 1) {
-        const int64_t startTimeUs = esp_timer_get_time();
+    // Voltage and Current change fast and are 
+    // essential to monitor closely to protect
+    // all the components
+    readBatterySocVoltCur(&blueBattery);
+    readBatterySocVoltCur(&grayBattery);
 
-        readBatterySocVoltCur(&blueBattery);
-        readBatteryChargeStatus(&blueBattery);
+    // Cell voltages also change fast, they are 
+    // refreshed every iteration as well.
+    readBatteryMinMaxCellVolt(&blueBattery);
+    readBatteryMinMaxCellVolt(&grayBattery);
+
+    // Signals that are updated every 10 cycles
+    if (cycle % 10) {
+        // Temperatures do not meaningfully change
+        // every cycle, read them every 10 cycles.
         readBatteryTemps(&blueBattery);
-
-        const int64_t elapsedTimeUs = esp_timer_get_time() - startTimeUs;
-        LOG_INFO("batteryControl",
-                 "Battery CAN reads completed in %lld.%03lld ms",
-                 (long long)(elapsedTimeUs / 1000),
-                 (long long)(elapsedTimeUs % 1000));
-
-        canCalled++;
+        readBatteryTemps(&grayBattery);
+        cycle = 0;
     }
+
+    cycle++;
+}
+
+/**
+ * Write all application's global signals periodically
+ */
+static void writeGlobal(void)
+{
+    // TODO: Write battery.h functions to get proper battery
+    // values from the raw values that were read using CAN.
+}
+
+/**
+ * Entry for the main interrupt loop. Reads and writes
+ * all the application's signals
+ */
+void batteryControl_appCyclicEntryPoint(void)
+{
+    readLocal();
+    writeGlobal();
 }
 
 /**

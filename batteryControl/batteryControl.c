@@ -47,10 +47,10 @@ static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
         ((uint32_t)ownId << 8) |
         (uint32_t)battery->bmsId;
 
-    LOG_INFO("batteryControl",
-             "Sending %s query: id=0x%08lx, expected response=0x%08lx",
-             queryName, (unsigned long)canId,
-             (unsigned long)expectedResponseId);
+    // LOG_INFO("batteryControl",
+    //          "Sending %s query: id=0x%08lx, expected response=0x%08lx",
+    //          queryName, (unsigned long)canId,
+    //          (unsigned long)expectedResponseId);
     
     // Send the query frame, return false if sending fails
     if (!canHelpers_send(canId, data, sizeof(data), pdMS_TO_TICKS(100))) {
@@ -74,14 +74,14 @@ static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
             break;
         }
 
-        LOG_INFO("batteryControl",
-                 "Received %s frame: id=0x%08lx, extended=%s, dlc=%u, "
-                 "data=%02x %02x %02x %02x %02x %02x %02x %02x",
-                 queryName, (unsigned long)recvFrame->id,
-                 recvFrame->extended ? "yes" : "no", recvFrame->dataLength,
-                 recvFrame->data[0], recvFrame->data[1], recvFrame->data[2],
-                 recvFrame->data[3], recvFrame->data[4], recvFrame->data[5],
-                 recvFrame->data[6], recvFrame->data[7]);
+        // LOG_INFO("batteryControl",
+        //          "Received %s frame: id=0x%08lx, extended=%s, dlc=%u, "
+        //          "data=%02x %02x %02x %02x %02x %02x %02x %02x",
+        //          queryName, (unsigned long)recvFrame->id,
+        //          recvFrame->extended ? "yes" : "no", recvFrame->dataLength,
+        //          recvFrame->data[0], recvFrame->data[1], recvFrame->data[2],
+        //          recvFrame->data[3], recvFrame->data[4], recvFrame->data[5],
+        //          recvFrame->data[6], recvFrame->data[7]);
         
         // Return true if the frame received had the expected id and data lenght
         if (recvFrame->extended && recvFrame->id == expectedResponseId &&
@@ -118,24 +118,10 @@ void readBatterySocVoltCur(Battery *battery)
     const uint16_t socRaw =
         ((uint16_t)recvFrame.data[6] << 8) | recvFrame.data[7];
 
-    // Voltage is multiplied by 10, so divide by 10 to get the
-    // correct unit.
-    const float totalVoltage = voltageRaw / 10.0f;
-    // Current is offset by 30k and multiplied by 10. So subtract 30k
-    // and divide by 10 to get the correct unit. Negative current 
-    // means the battery is being drained, positive means charging
-    const float current = ((int32_t)currentRaw - 30000) / 10.0f;
-    // SOC is multiplied by 10. Divide by 10 to get the percentage value
-    const float soc = socRaw / 10.0f;
-
     // Write the values to the battery object
     battery->totalVoltage = voltageRaw;
     battery->current = currentRaw;
     battery->soc = socRaw;
-
-    LOG_INFO("batteryControl",
-             "BMS %u: voltage=%.1f V, current=%.1f A, SOC=%.1f%%",
-             battery->bmsId, totalVoltage, current, soc);
 }
 
 
@@ -190,14 +176,6 @@ void readBatteryChargeStatus(Battery *battery)
         ((uint32_t)recvFrame.data[5] << 16) |
         ((uint32_t)recvFrame.data[6] << 8) |
         (uint32_t)recvFrame.data[7];
-
-    LOG_INFO("batteryControl",
-             "BMS %u: state=%u, charge MOSFET=%s, discharge MOSFET=%s, "
-             "cycles=%u, remaining capacity=%lu mAh",
-             battery->bmsId, battery->batteryState,
-             battery->chargeMosfet == 0 ? "on" : "off",
-             battery->dischargeMosfet == 0 ? "on" : "off",
-             battery->cycleLife, (unsigned long)battery->remainingCapacity);
 }
 
 /**
@@ -212,24 +190,17 @@ void readBatteryTemps(Battery *battery)
     }
 
     // Max temperature in the first byte. This is latest value of the 
-    // temperature sensor with the current highest reading. The temp is
-    // offset by 40. So subract 40 to get Celsius.
-    battery->maxTemperature = (int16_t)recvFrame.data[0] - 40;
+    // temperature sensor with the current highest reading.
+    battery->maxTemperature = (int16_t)recvFrame.data[0];
     // The number of the temperature sensor with the highest reading.
     battery->maxTemperatureSensor = recvFrame.data[1];
     // Same for the minimum temperature.
-    battery->minTemperature = (int16_t)recvFrame.data[2] - 40;
+    battery->minTemperature = (int16_t)recvFrame.data[2];
     battery->minTemperatureSensor = recvFrame.data[3];
-
-    LOG_INFO("batteryControl",
-             "BMS %u: max temperature=%d C (sensor %u), "
-             "min temperature=%d C (sensor %u)",
-             battery->bmsId, battery->maxTemperature,
-             battery->maxTemperatureSensor, battery->minTemperature,
-             battery->minTemperatureSensor);
 }
 
 void readCellVoltages(Battery *battery)
 {
-    // TODO: Implement.
+    // TODO: Implement. Probably not needed right now, will be
+    // usefull if mobile app is implemented.
 }

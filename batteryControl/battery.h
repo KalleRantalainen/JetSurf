@@ -27,7 +27,7 @@ typedef struct {
     uint16_t maxCellVoltage;          // Maximum cell voltage
     uint16_t minCellVoltage;          // Minimum cell volatge
     uint8_t maxVoltageCell;           // Cell num with the highest voltage
-    uint8_t minVoltageCellM           // Cell num with the smallest voltage
+    uint8_t minVoltageCell;           // Cell num with the smallest voltage
     uint8_t batteryState;             // 0 idle, 1 charging, 2 discharging
     uint8_t chargeMosfet;             // 0 closed/on, 1 open/off
     uint8_t dischargeMosfet;          // 0 closed/on, 1 open/off
@@ -37,5 +37,22 @@ typedef struct {
 
 // Sets bmsId and CAN message priority for the battery
 void intializeBattery(Battery* battery, uint8_t bmsId, uint8_t prio);
+
+/* -- Getters -- */
+// Get battery current in Amps, from example 10.2A or -2.0A
+float getBatteryCurrent(Battery* battery);
+// Get battery current in Volts, fro example 53.4V
+float getBatteryVoltage(Battery* battery);
+// Get battery SOC in percentages, for example 68%
+float getBatterySoc(Battery* battery);
+// Get the temperature of the sensor with the highest reading
+// in celcius, for example 27C
+float getHighestTemp(Battery* battery);
+// Get the id of the sensor with the highest reading, 1 or 2
+uint8_t getHighestTempSensor(Battery* battery);
+// Get the absolute voltage difference between cells that
+// have the highest differece
+float getVoltageDiff(Battery* battery);
+
 
 #endif // BATTERY_H_
