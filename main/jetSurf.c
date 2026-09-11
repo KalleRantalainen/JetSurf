@@ -11,10 +11,11 @@
 #include "motorControl_app.h"
 #include "throttleControl_app.h"
 #include "batteryControl_app.h"
-#include "canHelpers.h"
 #include "logger_app.h"
 #include "bluetooth_app.h"
 #include "positionTracking_app.h"
+
+#include "outputSignals.h"
 
 #include "logger.h"
 
@@ -24,7 +25,7 @@
 //           BLE <-> Mobile connection?
 
 // Application cycle in milliseconds
-static const int APPLICATION_CYCLE_MS = 250;
+static const int APPLICATION_CYCLE_MS = 100;
 static esp_timer_handle_t s_periodicTimer;
 
 /**
@@ -34,12 +35,19 @@ static esp_timer_handle_t s_periodicTimer;
 static void applicationTimerCallback(void *arg)
 {
     (void)arg;
+    // Time the main control loop and write the result
+    // to main loop exec time signal
+    int64_t startTime = esp_timer_get_time();
 
     bluetooth_appCyclicEntryPoint();
     throttleControl_appCyclicEntryPoint();
     motorControl_appCyclicEntryPoint();
     batteryControl_appCyclicEntryPoint();
     positionTracking_appCyclicEntryPoint();
+
+    int64_t executionTimeUs = esp_timer_get_time() - startTime;
+    outputSignal_controlLoopExecTimeUs = executionTimeUs;
+    LOG_SIGNAL("Exec time: %lld us", outputSignal_controlLoopExecTimeUs);
 }
 
 /**

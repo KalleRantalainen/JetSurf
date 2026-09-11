@@ -207,14 +207,14 @@ static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
     //          (unsigned long)expectedResponseId);
     
     // Send the query frame, return false if sending fails
-    if (!canHelpers_send(canId, data, sizeof(data), pdMS_TO_TICKS(100))) {
+    if (!canHelpers_send(canId, data, sizeof(data), pdMS_TO_TICKS(10))) {
         LOG_ERR("Failed to send %s query: id=0x%08lx, BMS=0x%02x",
                 queryName, (unsigned long)canId, battery->bmsId);
         return false;
     }
 
     // Timeout for getting the response frame
-    const TickType_t timeoutTicks = pdMS_TO_TICKS(200);
+    const TickType_t timeoutTicks = pdMS_TO_TICKS(10);
     const TickType_t startTicks = xTaskGetTickCount();
 
     // Try to receive the reponse frame until time runs out.

@@ -45,7 +45,7 @@ static void readLocal(void)
     readBatteryMinMaxCellVolt(&grayBattery);
 
     // Signals that are updated every 10 cycles
-    if (cycle % 10) {
+    if (cycle % 10 == 0) {
         // Temperatures do not meaningfully change
         // every cycle, read them every 10 cycles.
         readBatteryTemps(&blueBattery);
@@ -82,8 +82,8 @@ static void writeGlobal(void)
     inputSignal_battery2_cellVoltageDiff = getVoltageDiff(&blueBattery);
     LOG_SIGNAL("Battery2 current: %0.1f A\n", inputSignal_battery2_current);
     LOG_SIGNAL("Battery2 voltage: %0.1f V\n", inputSignal_battery2_voltage);
-    LOG_SIGNAL("Battery2 SOC: %0.1f\n%%", inputSignal_battery2_soc);
-    LOG_SIGNAL("Battery2 highest temp: %0.1f\n°C", inputSignal_battery2_highestTemp);
+    LOG_SIGNAL("Battery2 SOC: %0.1f%%\n", inputSignal_battery2_soc);
+    LOG_SIGNAL("Battery2 highest temp: %0.1f°C\n", inputSignal_battery2_highestTemp);
     LOG_SIGNAL("Battery2 highest temp sensor: %u\n", inputSignal_battery2_highestTempSensor);
     LOG_SIGNAL("Battery2 cell voltage diff: %0.1f mv\n", inputSignal_battery2_cellVoltageDiff);
 

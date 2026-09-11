@@ -16,3 +16,6 @@ bool outputSignal_battery2_currentIsGettingTooHigh;
 bool outputSignal_battery2_currentIsTooHigh;
 bool outputSignal_battery2_temperatureTooHigh;
 bool outputSignal_battery2_voltageDifferenceTooHigh;
+
+/* --- Control loop execution time signal in us --- */
+int64_t outputSignal_controlLoopExecTimeUs;

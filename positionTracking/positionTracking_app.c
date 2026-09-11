@@ -13,6 +13,11 @@ static void writeGlobal(void)
 {
     static uint32_t lastFixTimestamp = 0;
     gps_position_t position;
+
+    // Read raw UART bytes and decode any complete NMEA sentence before
+    // checking whether the GPS module currently has a valid fix.
+    readPosition();
+
     if (neoM9Ngps_getPosition(&position)) {
         // Write some GPS signals as global signals for other applications
         inputSignal_velocityMetSec = position.speedMetersPerSecond;
@@ -27,9 +32,12 @@ static void writeGlobal(void)
             LOG_SIGNAL("Longitude: %.6f°\n", inputSignal_longitudeDeg);
             LOG_SIGNAL("Velocity: %.2f m/s\n", inputSignal_velocityMetSec);
             LOG_SIGNAL("Course: %.6f°\n", inputSignal_courseDeg);
+            LOG_SIGNAL("GPS timestamp: %d\n ms", inputSignal_gpsTimestampMs);
         }
 
         lastFixTimestamp = position.fixTimestampMs;
+    } else {
+        LOG_WARN("GPS has no fix\n");
     }
 }
 /**
