@@ -21,11 +21,11 @@ static void writeGlobal(void)
         inputSignal_gpsTimestampMs = position->fixTimestampMs;
 
         // Write the signals
-        LOG_INFO("positionTracking", "GPS position: latitude=%.6f, longitude=%.6f, fixTimestamp: %d\n",
+        LOG_INFO("GPS position: latitude=%.6f, longitude=%.6f, fixTimestamp: %d\n",
             inputSignal_latitudeDeg, inputSignal_longitudeDeg, inputSignal_gpsTimestampMs);
-        LOG_INFO("positionTracking", "GPS velocity: %.2f m/s, fixTimestamp: %d\n",
+        LOG_INFO("GPS velocity: %.2f m/s, fixTimestamp: %d\n",
             inputSignal_velocityMetSec, inputSignal_gpsTimestampMs);
-        LOG_INFO("positionTracking", "GSP course: %.6f, fixTimestamp: %d\n", inputSignal_courseDeg,
+        LOG_INFO("GSP course: %.6f, fixTimestamp: %d\n", inputSignal_courseDeg,
             inputSignal_gpsTimestampMs);
     }
 }

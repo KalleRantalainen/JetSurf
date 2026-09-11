@@ -13,5 +13,5 @@ void bluetooth_appCyclicEntryPoint(void)
 {   
     // BLE throttle value ranges from 0 to 255 (one byte)
     inputSignal_bleThrottle = bleMaster_getThrottle();
-    LOG_INFO("bluetooth", "Throttle received over BLE: %d\n", inputSignal_bleThrottle);
+    LOG_INFO("Throttle received over BLE: %d\n", inputSignal_bleThrottle);
 }

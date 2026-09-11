@@ -365,10 +365,10 @@ uint8_t bleMaster_getThrottle(void)
     const uint32_t nowMs = (uint32_t)(esp_timer_get_time() / 1000ULL);
     const uint32_t ageMs = nowMs - latestThrottleTimestampMs;
     if (ageMs > BLE_MASTER_THROTTLE_TIMEOUT_MS) {
-        LOG_WARN("bluetooth", "BLE throttle value is %d ms old. Setting throttle to 0.\n", ageMs);
+        LOG_WARN("BLE throttle value is %d ms old. Setting throttle to 0.\n", ageMs);
         return 0;
     }
-    LOG_INFO("bluetooth", "BLE Throttle age: %d ms\n", ageMs);
+    LOG_INFO("BLE Throttle age: %d ms\n", ageMs);
     return latestThrottle;
 }
 

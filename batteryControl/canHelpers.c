@@ -162,7 +162,7 @@ bool canHelpers_send(uint32_t id, const uint8_t *data, uint8_t dataLength,
 	esp_err_t result = twai_node_transmit(
 		s_canNode, &message, (int)pdTICKS_TO_MS(timeoutTicks));
 	if (result != ESP_OK) {
-		LOG_ERR("canHelpers", "TWAI transmit failed for id=0x%08lx: %s",
+		LOG_ERR("TWAI transmit failed for id=0x%08lx: %s",
 			(unsigned long)id, esp_err_to_name(result));
 	}
 

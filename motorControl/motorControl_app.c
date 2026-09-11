@@ -23,7 +23,7 @@ static void readAll(void)
 static void writeAll(void)
 {
     // Repeatedly set the motor speed.
-    LOG_INFO("motorControl", "Motor throttle: %d\n", outputSignal_throttle);
+    LOG_INFO("Motor throttle: %d\n", outputSignal_throttle);
     setSpeed(outputSignal_throttle, &leftMotor);
     setSpeed(outputSignal_throttle, &rightMotor);
 }

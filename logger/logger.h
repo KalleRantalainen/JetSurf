@@ -53,6 +53,7 @@ void logger_requestRotation(void);
 
 // Macros can be called to automatically handle the log level
 #ifndef LOG_TAG
+#warning "LOG_TAG is not defined before including logger.h, using unknown as the tag."
 #define LOG_TAG "unknown"
 #endif
 

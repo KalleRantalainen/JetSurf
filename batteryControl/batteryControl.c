@@ -1,5 +1,6 @@
 #include "batteryControl.h"
 #include "canHelpers.h"
+
 #include "logger.h"
 
 #include "freertos/task.h"
@@ -28,7 +29,7 @@ static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
                                  canHelpers_frame_t *recvFrame)
 {
     if (battery == NULL || recvFrame == NULL) {
-        LOG_ERR("batteryControl", "Cannot send %s query with a NULL argument",
+        LOG_ERR("Cannot send %s query with a NULL argument",
                 queryName);
         return false;
     }
@@ -54,8 +55,7 @@ static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
     
     // Send the query frame, return false if sending fails
     if (!canHelpers_send(canId, data, sizeof(data), pdMS_TO_TICKS(100))) {
-        LOG_ERR("batteryControl",
-                "Failed to send %s query: id=0x%08lx, BMS=0x%02x",
+        LOG_ERR("Failed to send %s query: id=0x%08lx, BMS=0x%02x",
                 queryName, (unsigned long)canId, battery->bmsId);
         return false;
     }
@@ -91,8 +91,7 @@ static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
     }
 
     // Return false if no valid response frame was received
-    LOG_ERR("batteryControl",
-            "No valid %s response from BMS %u; expected id=0x%08lx",
+    LOG_ERR("No valid %s response from BMS %u; expected id=0x%08lx",
             queryName, battery->bmsId, (unsigned long)expectedResponseId);
     return false;
 }

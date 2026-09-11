@@ -4,11 +4,11 @@
 
 #include "esp_timer.h"
 
-#include "logger.h"
-
 #include "batteryControl.h"
 #include "canHelpers.h"
 #include "inputSignals.h"
+
+#include "logger.h"
 
 // One battery has a gray outershell, the other one
 // has a blue shell.
@@ -30,7 +30,7 @@ static void readLocal(void)
 
     // Make sure the CAN communication is initialized
     if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
-        LOG_ERR("batteryControl", "CAN initialization failed");
+        LOG_ERR("CAN initialization failed");
     }
 
     // Voltage and Current change fast and are 
