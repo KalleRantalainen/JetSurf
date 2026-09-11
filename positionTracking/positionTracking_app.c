@@ -11,6 +11,7 @@
  */
 static void writeGlobal(void)
 {
+    static uint32_t lastFixTimestamp = 0;
     gps_position_t position;
     if (neoM9Ngps_getPosition(&position)) {
         // Write some GPS signals as global signals for other applications
@@ -20,13 +21,15 @@ static void writeGlobal(void)
         inputSignal_courseDeg = position->courseDegrees;
         inputSignal_gpsTimestampMs = position->fixTimestampMs;
 
-        // Write the signals
-        LOG_INFO("GPS position: latitude=%.6f, longitude=%.6f, fixTimestamp: %d\n",
-            inputSignal_latitudeDeg, inputSignal_longitudeDeg, inputSignal_gpsTimestampMs);
-        LOG_INFO("GPS velocity: %.2f m/s, fixTimestamp: %d\n",
-            inputSignal_velocityMetSec, inputSignal_gpsTimestampMs);
-        LOG_INFO("GSP course: %.6f, fixTimestamp: %d\n", inputSignal_courseDeg,
-            inputSignal_gpsTimestampMs);
+        if (lastFixTimestamp != position->fixTimestampMs) {
+            // LOG the signals if they have updated
+            LOG_SIGNAL("Latitude: %.6f°\n", inputSignal_latitudeDeg);
+            LOG_SIGNAL("Longitude: %.6f°\n", inputSignal_longitudeDeg);
+            LOG_SIGNAL("Velocity: %.2f m/s\n", inputSignal_velocityMetSec);
+            LOG_SIGNAL("Course: %.6f°\n", inputSignal_courseDeg);
+        }
+
+        lastFixTimestamp = position->fixTimestampMs;
     }
 }
 

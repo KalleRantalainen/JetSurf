@@ -24,8 +24,8 @@ typedef struct {
     int16_t minTemperature;           // Minimum temperature in degrees Celsius
     uint8_t maxTemperatureSensor;     // Sensor number reporting maxTemperature
     uint8_t minTemperatureSensor;     // Sensor number reporting minTemperature
-    uint16_t maxCellVoltage;          // Maximum cell voltage
-    uint16_t minCellVoltage;          // Minimum cell volatge
+    uint16_t maxCellVoltage;          // Maximum cell voltage, mV
+    uint16_t minCellVoltage;          // Minimum cell volatge, mV
     uint8_t maxVoltageCell;           // Cell num with the highest voltage
     uint8_t minVoltageCell;           // Cell num with the smallest voltage
     uint8_t batteryState;             // 0 idle, 1 charging, 2 discharging
@@ -51,7 +51,7 @@ float getHighestTemp(Battery* battery);
 // Get the id of the sensor with the highest reading, 1 or 2
 uint8_t getHighestTempSensor(Battery* battery);
 // Get the absolute voltage difference between cells that
-// have the highest differece
+// have the highest differece, unit is mV
 float getVoltageDiff(Battery* battery);
 
 

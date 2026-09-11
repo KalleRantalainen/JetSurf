@@ -1,23 +1,28 @@
 #include "throttleControl_app.h"
+#include "throttleControl.h"
 
 #include "inputSignals.h"
 #include "outputSignals.h"
 
 /**
- * Read all application specific signals periodically
+ * Write all application's global signals
  */
-static void readAll(void)
+static void writeGlobal(void)
 {
-    // The Bluetooth application updates the input signal asynchronously.
-}
-
-/**
- * Write all application speicific signals periodically
- */
-static void writeAll(void)
-{
-    // Write the throttle input signal as the throttle output
-    outputSignal_throttle = inputSignal_throttle;
+    // BLE throttle is between 0 and 255
+    // Both motors receive the same throttle for now, so
+    // there is no differential throttle for now. However,
+    // both motors might not actually draw the same Amps in
+    // reality due to worn down parts, or some shit in the
+    // water inlet or the jet nozzle. This is why it migth
+    // be a good idea to try to match the amps pulled from
+    // the batteries rather than matching the throttle. This
+    // way the throttle values would vary between the motors
+    // but both motors would pull the same amps and they would
+    // likely have close to same rpm?
+    uint8_t throttle = getValidThrottle();
+    outputSignal_motor1_throttle = throttle;
+    outputSignal_motor2_throttle = throttle;
 }
 
 /**
@@ -36,6 +41,6 @@ void throttleControl_appCyclicEntryPoint(void)
 void throttleControl_appInitAll(void)
 {
     // Initialize the global throttle signals to 0.
-    inputSignal_throttle = 0;
-    outputSignal_throttle = 0;
+    outputSignal_motor1_throttle = 0;
+    outputSignal_motor2_throttle = 0;
 }

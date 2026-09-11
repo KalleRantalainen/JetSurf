@@ -130,7 +130,7 @@ void readBatteryMinMaxCellVolt(Battery *battery)
     if (!requestBatteryFrame(battery, 0x91, "minMaxCellVolt", &recvFrame)) {
         return;
     }
-    // Max voltage in the first two bytes
+    // Max voltage in the first two bytes (millivolts)
     const uint16_t maxVoltage =
         ((uint16_t)recvFrame.data[0] << 8) | recvFrame.data[1];
     // The cell num that has the highest voltage

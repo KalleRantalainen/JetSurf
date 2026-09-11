@@ -1,5 +1,8 @@
 #include "potentioMeter.h"
 
+// NOT USED. THIS LOGIC IS MOVED ON THE CONTROLLER'
+// AND THE THROTTLE COMMANDS MOVE OVER BLE
+
 /**
  * Initialize a potentiometer to some AIN pin of ESP32
  * @param pot potentiometer instance

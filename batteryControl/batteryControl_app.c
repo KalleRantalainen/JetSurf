@@ -67,13 +67,26 @@ static void writeGlobal(void)
     inputSignal_battery1_highestTemp = getHighestTemp(&grayBattery);
     inputSignal_battery1_highestTempSensor = getHighestTempSensor(&grayBattery);
     inputSignal_battery1_cellVoltageDiff = getVoltageDiff(&grayBattery);
-    
+    LOG_SIGNAL("Battery1 current: %0.1f A\n", inputSignal_battery1_current);
+    LOG_SIGNAL("Battery1 voltage: %0.1f V\n", inputSignal_battery1_voltage);
+    LOG_SIGNAL("Battery1 SOC: %0.1f%%\n", inputSignal_battery1_soc);
+    LOG_SIGNAL("Battery1 highest temp: %0.1f°C\n", inputSignal_battery1_highestTemp);
+    LOG_SIGNAL("Battery1 highest temp sensor: %u\n", inputSignal_battery1_highestTempSensor);
+    LOG_SIGNAL("Battery1 cell voltage diff: %0.1f mV\n", inputSignal_battery1_cellVoltageDiff);
+
     inputSignal_battery2_current = getBatteryCurrent(&blueBattery);
     inputSignal_battery2_voltage = getBatteryVoltage(&blueBattery);
     inputSignal_battery2_soc = getBatterySoc(&blueBattery);
     inputSignal_battery2_highestTemp = getHighestTemp(&blueBattery);
     inputSignal_battery2_highestTempSensor = getHighestTempSensor(&blueBattery);
     inputSignal_battery2_cellVoltageDiff = getVoltageDiff(&blueBattery);
+    LOG_SIGNAL("Battery2 current: %0.1f A\n", inputSignal_battery2_current);
+    LOG_SIGNAL("Battery2 voltage: %0.1f V\n", inputSignal_battery2_voltage);
+    LOG_SIGNAL("Battery2 SOC: %0.1f\n%%", inputSignal_battery2_soc);
+    LOG_SIGNAL("Battery2 highest temp: %0.1f\n°C", inputSignal_battery2_highestTemp);
+    LOG_SIGNAL("Battery2 highest temp sensor: %u\n", inputSignal_battery2_highestTempSensor);
+    LOG_SIGNAL("Battery2 cell voltage diff: %0.1f mv\n", inputSignal_battery2_cellVoltageDiff);
+
 }
 
 /**

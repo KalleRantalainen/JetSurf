@@ -8,6 +8,9 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_err.h"
 
+// NOT USED. THIS LOGIC IS MOVED ON THE CONTROLLER'
+// AND THE THROTTLE COMMANDS MOVE OVER BLE
+
 typedef struct {
     gpio_num_t gpio;
     adc_unit_t unitId;

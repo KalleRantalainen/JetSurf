@@ -83,6 +83,7 @@ uint8_t getHighestTempSensor(Battery* battery)
 
 /**
  * Get the absolute voltage difference between the highest and lowest cell voltages.
+ * The unit is mV
  * @param battery battery instance
  * @return absolute cell voltage spread as float
  */
