@@ -36,6 +36,8 @@ static const char *logLevelToString(log_level_t level)
     switch (level) {
         case LOGGER_LEVEL_INFO:
             return "INFO";
+        case LOGGER_LEVEL_SIGNAL:
+            return "SIGNAL"
         case LOGGER_LEVEL_WARNING:
             return "WARNING";
         case LOGGER_LEVEL_ERROR:

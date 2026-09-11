@@ -6,8 +6,17 @@
 
 // Log levels used by all modules.
 #define LOGGER_LEVEL_INFO    0
-#define LOGGER_LEVEL_WARNING 1
-#define LOGGER_LEVEL_ERROR   2
+#define LOGGER_LEVEL_SIGNAL  1
+#define LOGGER_LEVEL_WARNING 2
+#define LOGGER_LEVEL_ERROR   3
+
+// INFO: Contains informatic line for debugging
+// SIGNAL: Signals are used to evaluate the performace
+//         of the board when analyzing the log
+// WARNING: Something has a value it should not have but
+//          it causes no immediate harm
+// ERROR: Something has a value is should not have and
+//        it will cause some harm.
 
 // Logger output destinations. Destinations can be combined when both outputs
 // are required.
@@ -43,8 +52,20 @@ void logger_drainQueue(void);
 void logger_requestRotation(void);
 
 // Macros can be called to automatically handle the log level
-#define LOG_INFO(source, fmt, ...) logLine(LOGGER_LEVEL_INFO, source, fmt, ##__VA_ARGS__)
-#define LOG_WARN(source, fmt, ...) logLine(LOGGER_LEVEL_WARNING, source, fmt, ##__VA_ARGS__)
-#define LOG_ERR(source, fmt, ...) logLine(LOGGER_LEVEL_ERROR, source, fmt, ##__VA_ARGS__)
+#ifndef LOG_TAG
+#define LOG_TAG "unknown"
+#endif
+
+#define LOG_INFO(fmt, ...) \
+    logLine(LOGGER_LEVEL_INFO, LOG_TAG, fmt, ##__VA_ARGS__)
+
+#define LOG_SIGNAL(fmt, ...) \
+    logLine(LOGGER_LEVEL_SIGNAL, LOG_TAG, fmt, ##__VA_ARGS__)
+
+#define LOG_WARN(fmt, ...) \
+    logLine(LOGGER_LEVEL_WARNING, LOG_TAG, fmt, ##__VA_ARGS__)
+
+#define LOG_ERR(fmt, ...) \
+    logLine(LOGGER_LEVEL_ERROR, LOG_TAG, fmt, ##__VA_ARGS__)
 
 #endif // LOGGER_H_
