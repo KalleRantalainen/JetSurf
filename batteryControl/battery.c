@@ -66,7 +66,7 @@ float getBatterySoc(Battery* battery)
 float getHighestTemp(Battery* battery)
 {
     // Temp is offset by 40, subract 40 to get the actual Celcius reading.
-    float temperature = (float)battery->maxTemperature;
+    float temperature = (float)battery->maxTemperature - 40;
     return temperature;
 }
 

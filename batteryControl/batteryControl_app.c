@@ -8,11 +8,12 @@
 
 #include "batteryControl.h"
 #include "canHelpers.h"
+#include "inputSignals.h"
 
 // One battery has a gray outershell, the other one
 // has a blue shell.
-static Battery grayBattery;
-static Battery blueBattery;
+static Battery grayBattery;  // Battery 1
+static Battery blueBattery;  // Battery 2
 
 /**
  * Read all local signals periodically
@@ -60,8 +61,19 @@ static void readLocal(void)
  */
 static void writeGlobal(void)
 {
-    // TODO: Write battery.h functions to get proper battery
-    // values from the raw values that were read using CAN.
+    inputSignal_battery1_current = getBatteryCurrent(&grayBattery);
+    inputSignal_battery1_voltage = getBatteryVoltage(&grayBattery);
+    inputSignal_battery1_soc = getBatterySoc(&grayBattery);
+    inputSignal_battery1_highestTemp = getHighestTemp(&grayBattery);
+    inputSignal_battery1_highestTempSensor = getHighestTempSensor(&grayBattery);
+    inputSignal_battery1_cellVoltageDiff = getVoltageDiff(&grayBattery);
+    
+    inputSignal_battery2_current = getBatteryCurrent(&blueBattery);
+    inputSignal_battery2_voltage = getBatteryVoltage(&blueBattery);
+    inputSignal_battery2_soc = getBatterySoc(&blueBattery);
+    inputSignal_battery2_highestTemp = getHighestTemp(&blueBattery);
+    inputSignal_battery2_highestTempSensor = getHighestTempSensor(&blueBattery);
+    inputSignal_battery2_cellVoltageDiff = getVoltageDiff(&blueBattery);
 }
 
 /**
