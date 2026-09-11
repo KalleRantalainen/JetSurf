@@ -5,10 +5,14 @@
 
 #include "battery.h"
 
+// Checks if any of the battery related warning/error
+// flags should be triggered and triggers them.
+void checkProtectionLimits(void);
+
 /* These functions below use CAN to read the raw values from
    the battery. The final values for total voltage for example
    can be read using functions defined by battery.h */
-   
+
 // Reads battery SOC, voltage, and current from BMS
 void readBatterySocVoltCur(Battery *battery);
 // Reads the min and max voltages of the cells

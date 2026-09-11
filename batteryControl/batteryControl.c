@@ -2,8 +2,159 @@
 #include "canHelpers.h"
 
 #include "logger.h"
+#include "inputSignals.h"
 
 #include "freertos/task.h"
+
+/**
+ * Sets the flags signals to true if battery currents
+ * are getting or starting to get out of hand.
+ */
+static void checkCurrentLimits(void)
+{
+    // First check if the current is getting too high
+    if (inputSignal_battery1_current >= parameter_highCurrentWarning) {
+        outputSignal_battery1_currentIsGettingTooHigh = true;
+        LOG_WARN("Battery 1 current is getting too high, limit: %.2f A, current: %.2f A",
+                 parameter_highCurrentWarning,
+                 inputSignal_battery1_current);
+    } else {
+        // The current was getting too high previously, now it has fallen below
+        // the limit though, print that for later log inspections
+        if (outputSignal_battery1_currentIsGettingTooHigh) {
+            LOG_INFO("Current was getting too high, now below limit. Limit: %.2f A, current: %.2f",
+                parameter_highCurrentWarning,
+                inputSignal_battery1_current);
+        }
+        outputSignal_battery1_currentIsGettingTooHigh = false;
+    }
+
+    if (inputSignal_battery2_current >= parameter_highCurrentWarning) {
+        outputSignal_battery2_currentIsGettingTooHigh = true;
+        LOG_WARN("Battery 2 current is getting too high, limit: %.2f A, current: %.2f A",
+                 parameter_highCurrentWarning,
+                 inputSignal_battery2_current);
+    } else {
+        // The current was getting too high previously, now it has fallen below
+        // the limit though, print that for later log inspections
+        if (outputSignal_battery2_currentIsGettingTooHigh) {
+            LOG_INFO("Battery 2 current was getting too high, now below limit. Limit: %.2f A, current: %.2f A",
+                     parameter_highCurrentWarning,
+                     inputSignal_battery2_current);
+        }
+        outputSignal_battery2_currentIsGettingTooHigh = false;
+    }
+
+    // Then check if the current is already too high
+    if (inputSignal_battery1_current >= parameter_maxCurrent) {
+        outputSignal_battery1_currentIsTooHigh = true;
+        LOG_WARN("Battery 1 current is too high, limit: %.2f A, current: %.2f A",
+                 parameter_maxCurrent,
+                 inputSignal_battery1_current);
+    } else {
+        // The current was already too high previously, now it has fallen below
+        // the limit though, print that for later log inspections
+        if (outputSignal_battery1_currentIsTooHigh) {
+            LOG_INFO("Battery 1 current was too high, now below limit. Limit: %.2f A, current: %.2f A",
+                     parameter_maxCurrent,
+                     inputSignal_battery1_current);
+        }
+        outputSignal_battery1_currentIsTooHigh = false;
+    }
+
+    if (inputSignal_battery2_current >= parameter_maxCurrent) {
+        outputSignal_battery2_currentIsTooHigh = true;
+        LOG_WARN("Battery 2 current is too high, limit: %.2f A, current: %.2f A",
+                 parameter_maxCurrent,
+                 inputSignal_battery2_current);
+    } else {
+        // The current was already too high previously, now it has fallen below
+        // the limit though, print that for later log inspections
+        if (outputSignal_battery2_currentIsTooHigh) {
+            LOG_INFO("Battery 2 current was too high, now below limit. Limit: %.2f A, current: %.2f A",
+                     parameter_maxCurrent,
+                     inputSignal_battery2_current);
+        }
+        outputSignal_battery2_currentIsTooHigh = false;
+    }
+}
+
+/**
+ * Check the temperature readings of the highest temp sensors.
+ * Set the flags if too high temp.
+ */
+static void checkTemperatureLimits(void)
+{
+    if (inputSignal_battery1_highestTemp >= parameter_maxTemperature) {
+        outputSignal_battery1_temperatureTooHigh = true;
+        LOG_WARN("Battery 1, sensor [%d] temperature is too high, limit: %.2f C, current: %.2f C",
+                 inputSignal_battery1_highestTempSensor,
+                 parameter_maxTemperature,
+                 inputSignal_battery1_highestTemp);
+    } else {
+        outputSignal_battery1_temperatureTooHigh = false;
+    }
+
+    if (inputSignal_battery2_highestTemp >= parameter_maxTemperature) {
+        outputSignal_battery2_temperatureTooHigh = true;
+        LOG_WARN("Battery 2, sensor [%d] temperature is too high, limit: %.2f C, current: %.2f C",
+                 inputSignal_battery2_highestTempSensor,
+                 parameter_maxTemperature,
+                 inputSignal_battery2_highestTemp);
+    } else {
+        outputSignal_battery2_temperatureTooHigh = false;
+    }
+}
+
+/**
+ * Check the cell voltage spread of each battery.
+ * Set the flags if the difference becomes too high.
+ */
+void checkCellVoltageLimits(void)
+{
+    if (inputSignal_battery1_cellVoltageDiff >= parameter_hardStopCellVoltageDiffMv) {
+        outputSignal_battery1_voltageDifferenceTooHigh = true;
+        LOG_WARN("Battery 1 cell voltage diff is too high, limit: %.2f mV, current: %.2f mV",
+                 parameter_hardStopCellVoltageDiffMv,
+                 inputSignal_battery1_cellVoltageDiff);
+    } else {
+        // The cell voltage spread was previously too high, now it has fallen
+        // below the limit though, print that for later log inspections.
+        if (outputSignal_battery1_voltageDifferenceTooHigh) {
+            LOG_INFO("Battery 1 cell voltage diff was too high, now below limit. Limit: %.2f mV, current: %.2f mV",
+                     parameter_hardStopCellVoltageDiffMv,
+                     inputSignal_battery1_cellVoltageDiff);
+        }
+        outputSignal_battery1_voltageDifferenceTooHigh = false;
+    }
+
+    if (inputSignal_battery2_cellVoltageDiff >= parameter_hardStopCellVoltageDiffMv) {
+        outputSignal_battery2_voltageDifferenceTooHigh = true;
+        LOG_WARN("Battery 2 cell voltage diff is too high, limit: %.2f mV, current: %.2f mV",
+                 parameter_hardStopCellVoltageDiffMv,
+                 inputSignal_battery2_cellVoltageDiff);
+    } else {
+        // The cell voltage spread was previously too high, now it has fallen
+        // below the limit though, print that for later log inspections.
+        if (outputSignal_battery2_voltageDifferenceTooHigh) {
+            LOG_INFO("Battery 2 cell voltage diff was too high, now below limit. Limit: %.2f mV, current: %.2f mV",
+                     parameter_hardStopCellVoltageDiffMv,
+                     inputSignal_battery2_cellVoltageDiff);
+        }
+        outputSignal_battery2_voltageDifferenceTooHigh = false;
+    }
+}
+
+/**
+ * Checks if we are pulling too much current from the
+ * batteries, or if the temps are getting too high etc.
+ */
+void checkProtectionLimits(void)
+{
+    checkCurrentLimits();
+    checkTemperatureLimits();
+    checkCellVoltageLimits();
+}
 
 // The Daly BMS id'S follow a pattern. When querying
 // data from the BMS, the frame id is 0xaabbccdd where:
