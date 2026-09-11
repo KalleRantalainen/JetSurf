@@ -26,6 +26,8 @@ typedef struct {
     uint8_t minTemperatureSensor;     // Sensor number reporting minTemperature
     uint16_t maxCellVoltage;          // Maximum cell voltage
     uint16_t minCellVoltage;          // Minimum cell volatge
+    uint8_t maxVoltageCell;           // Cell num with the highest voltage
+    uint8_t minVoltageCellM           // Cell num with the smallest voltage
     uint8_t batteryState;             // 0 idle, 1 charging, 2 discharging
     uint8_t chargeMosfet;             // 0 closed/on, 1 open/off
     uint8_t dischargeMosfet;          // 0 closed/on, 1 open/off

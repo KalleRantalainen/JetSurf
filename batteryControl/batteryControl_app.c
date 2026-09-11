@@ -36,7 +36,13 @@ static void writeAll(void)
  */
 void batteryControl_appCyclicEntryPoint(void)
 {
-    static int canCalled = 0;
+    // CAN queries are somewhat slow. The query and response
+    // take arounf 4us per bit. Since both contain about 126 bits,
+    // one message takes about 500us or 0.5ms. This means getting
+    // one response takes around 1ms. Addtionially some signals, like
+    // temperature does not change meaningfully during one application
+    // cycle, so it can be queried every 10 cycles for example
+    static int cycle = 0;
     // Make sure the CAN communication is initialized
     if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
         LOG_ERR("batteryControl", "CAN initialization failed");
@@ -66,7 +72,7 @@ void batteryControl_appInitAll(void)
 {
     // Initialize the CAN controller before sending Daly requests.
     if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
-        printf("[batteryControl] CAN initialization failed\n");
+        printf("CAN initialization failed\n");
     }
 
     // Initialize the batteries with proper ids and priorities.
@@ -77,7 +83,7 @@ void batteryControl_appInitAll(void)
     intializeBattery(&grayBattery, 0x01, 0x18);
     intializeBattery(&blueBattery, 0x02, 0x18);
 
-    printf("[batteryControl] Batteries initialized: gray BMS=0x%02x priority=0x%02x, "
+    printf("Batteries initialized: gray BMS=0x%02x priority=0x%02x, "
            "blue BMS=0x%02x priority=0x%02x\n",
            grayBattery.bmsId, grayBattery.priority,
            blueBattery.bmsId, blueBattery.priority);

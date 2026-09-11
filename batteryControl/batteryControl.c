@@ -141,7 +141,26 @@ void readBatterySocVoltCur(Battery *battery)
 
 void readBatteryMinMaxCellVolt(Battery *battery)
 {
-    // TODO: Implement.
+    canHelpers_frame_t recvFrame;
+    if (!requestBatteryFrame(battery, 0x91, "minMaxCellVolt", &recvFrame)) {
+        return;
+    }
+    // Max voltage in the first two bytes
+    const uint16_t maxVoltage =
+        ((uint16_t)recvFrame.data[0] << 8) | recvFrame.data[1];
+    // The cell num that has the highest voltage
+    const uint8_t maxVoltageCellNum = recvFrame.data[2];
+    // Min voltage in the 4th and 5th byte
+    const uint16_t minVoltage =
+        ((uint16_t)recvFrame.data[3] << 8) | recvFrame.data[4];
+    // The cell num with the lowest voltage
+    const uint8_t minVoltageCellNum = recvFrame.data[5];
+
+    // Store the information to the battery
+    battery->maxCellVoltage = maxVoltage;
+    battery->minCellVoltage = minVoltage;
+    battery->maxVoltageCell = maxVoltageCellNum;
+    battery->minVoltageCell = minVoltageCellNum;
 }
 
 /**
