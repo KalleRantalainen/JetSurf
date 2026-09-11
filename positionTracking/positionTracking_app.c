@@ -15,13 +15,13 @@ static void writeGlobal(void)
     gps_position_t position;
     if (neoM9Ngps_getPosition(&position)) {
         // Write some GPS signals as global signals for other applications
-        inputSignal_velocityMetSec = position->speedMetersPerSecond;
-        inputSignal_latitudeDeg = position->latitudeDegrees;
-        inputSignal_longitudeDeg = position->longitudeDegrees;
-        inputSignal_courseDeg = position->courseDegrees;
-        inputSignal_gpsTimestampMs = position->fixTimestampMs;
+        inputSignal_velocityMetSec = position.speedMetersPerSecond;
+        inputSignal_latitudeDeg = position.latitudeDegrees;
+        inputSignal_longitudeDeg = position.longitudeDegrees;
+        inputSignal_courseDeg = position.courseDegrees;
+        inputSignal_gpsTimestampMs = position.fixTimestampMs;
 
-        if (lastFixTimestamp != position->fixTimestampMs) {
+        if (lastFixTimestamp != position.fixTimestampMs) {
             // LOG the signals if they have updated
             LOG_SIGNAL("Latitude: %.6f°\n", inputSignal_latitudeDeg);
             LOG_SIGNAL("Longitude: %.6f°\n", inputSignal_longitudeDeg);
@@ -29,10 +29,9 @@ static void writeGlobal(void)
             LOG_SIGNAL("Course: %.6f°\n", inputSignal_courseDeg);
         }
 
-        lastFixTimestamp = position->fixTimestampMs;
+        lastFixTimestamp = position.fixTimestampMs;
     }
 }
-
 /**
  * Entry for the main interrupt loop. Does everything the
  * applications has to do periodically

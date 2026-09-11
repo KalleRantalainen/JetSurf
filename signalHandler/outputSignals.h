@@ -9,8 +9,8 @@
 // All signals declared here must have a prefix outputSignal_
 
 /* --- Throttle signals --- */
-extern uint16_t outputSignal_motor1_throttle; // Throttle ranges from 0 to 1000
-extern uint16_t outputSignal_motor2_throttle; // The throttle values for both motors should be the same, no differential throttle
+extern uint8_t outputSignal_motor1_throttle; // Throttle ranges from 0 to 1000
+extern uint8_t outputSignal_motor2_throttle; // The throttle values for both motors should be the same, no differential throttle
 
 /* --- Software level battery protection signals --- */
 extern bool outputSignal_battery1_currentIsGettingTooHigh;  // Actions to limit further current increase should be taken

@@ -3,6 +3,8 @@
 
 #include "logger.h"
 #include "inputSignals.h"
+#include "outputSignals.h"
+#include "parameters.h"
 
 #include "freertos/task.h"
 

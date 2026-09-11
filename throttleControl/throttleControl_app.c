@@ -36,8 +36,7 @@ static void writeGlobal(void)
  */
 void throttleControl_appCyclicEntryPoint(void)
 {
-    readAll();
-    writeAll();
+    writeGlobal();
 }
 
 /**

@@ -114,7 +114,7 @@ uint8_t getProtectedThrottle(void)
         outputSignal_battery2_currentIsTooHigh) {
         reductionPercent = 10;
     } else if (outputSignal_battery1_temperatureTooHigh ||
-               outputSignal_battery2_temperatureTooHigh ||) {
+               outputSignal_battery2_temperatureTooHigh) {
         // If temps get out of hand, block the throttle entirely.
         // Takes a long time to cool batteries in tight space with
         // no active cooling.
