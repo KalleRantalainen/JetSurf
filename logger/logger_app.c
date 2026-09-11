@@ -34,6 +34,6 @@ void logger_appCyclicEntryPoint(void)
  */
 void logger_appInitAll(void)
 {
-    logger_init(LOGGER_OUTPUT_SD_CARD_AND_TERMINAL);
+    logger_init(LOGGER_OUTPUT_SD_CARD);
 }
 
