@@ -6,9 +6,6 @@
 #include "esp_timer.h"
 #include "host/ble_hs.h"
 #include "host/util/util.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#include "nvs_flash.h"
 #include "logger.h"
 
 static const char *TAG = "bleMaster";
@@ -311,46 +308,20 @@ static void startScan(void)
 }
 
 /**
- * Start scanning after the NimBLE host has completed synchronization.
- */
-static void onHostSync(void)
-{
-    uint8_t ownAddressType;
-    if (ble_hs_id_infer_auto(0, &ownAddressType) != 0) {
-        ESP_LOGE(TAG, "Could not determine local BLE address type");
-        return;
-    }
-    startScan();
-}
-
-/**
- * Run the NimBLE host event loop in its FreeRTOS task.
- */
-static void nimbleHostTask(void *arg)
-{
-    (void)arg;
-    nimble_port_run();
-    nimble_port_freertos_deinit();
-}
-
-/**
- * Initialize NVS and the NimBLE host, then start the BLE master task.
+ * Initialize the remote-controller client state. The shared NimBLE host is
+ * initialized by bleMobileInterface so the board can be both central and
+ * peripheral without starting NimBLE twice.
  */
 void bleMaster_init(void)
 {
-    esp_err_t nvsResult = nvs_flash_init();
-    if (nvsResult == ESP_ERR_NVS_NO_FREE_PAGES || nvsResult == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        nvsResult = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(nvsResult);
-
     latestThrottle = 0;
     latestThrottleTimestampMs = 0;
     connected = false;
-    ble_hs_cfg.sync_cb = onHostSync;
-    nimble_port_init();
-    nimble_port_freertos_init(nimbleHostTask);
+}
+
+void bleMaster_startScan(void)
+{
+    startScan();
 }
 
 /**

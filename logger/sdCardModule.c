@@ -9,6 +9,8 @@
 #include "driver/sdspi_host.h"
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "sdmmc_cmd.h"
 
 static const char *TAG = "sdCardModule";
@@ -18,6 +20,17 @@ static spi_host_device_t s_hostId;
 static unsigned int s_logFileNumber = 0;
 static size_t s_logFileSize = 0;
 static char s_sessionPath[64];
+static SemaphoreHandle_t s_sdMutex = NULL;
+
+static bool lockSdCard(void)
+{
+	return s_sdMutex != NULL && xSemaphoreTake(s_sdMutex, portMAX_DELAY) == pdTRUE;
+}
+
+static void unlockSdCard(void)
+{
+	xSemaphoreGive(s_sdMutex);
+}
 
 /**
  * Find the next available numbered session or log file.
@@ -74,6 +87,10 @@ bool sdCardModule_init(void)
 	if (s_logFile != NULL) {
 		return true;
 	}
+	s_sdMutex = xSemaphoreCreateMutex();
+	if (s_sdMutex == NULL) {
+		return false;
+	}
 
 	// Configure the ESP32 SPI pins used by the SD card module.
 	spi_bus_config_t busConfig = {
@@ -91,6 +108,8 @@ bool sdCardModule_init(void)
 	esp_err_t error = spi_bus_initialize(s_hostId, &busConfig, SDSPI_DEFAULT_DMA);
 	if (error != ESP_OK) {
 		ESP_LOGE(TAG, "SPI bus initialization failed: %s", esp_err_to_name(error));
+		vSemaphoreDelete(s_sdMutex);
+		s_sdMutex = NULL;
 		return false;
 	}
 
@@ -109,6 +128,8 @@ bool sdCardModule_init(void)
 		ESP_LOGE(TAG, "SD card mount failed: %s", esp_err_to_name(error));
 		spi_bus_free(s_hostId);
 		s_card = NULL;
+		vSemaphoreDelete(s_sdMutex);
+		s_sdMutex = NULL;
 		return false;
 	}
 
@@ -141,29 +162,38 @@ bool sdCardModule_write(const char *data, size_t length)
 	if (s_logFile == NULL || data == NULL || length == 0) {
 		return false;
 	}
+	if (!lockSdCard()) {
+		return false;
+	}
 
 	if (s_logFileSize > 0 && s_logFileSize + length > SD_CARD_MAX_LOG_FILE_SIZE) {
 		// Close the completed file before opening the next numbered file.
 		if (fclose(s_logFile) != 0) {
 			s_logFile = NULL;
+			unlockSdCard();
 			return false;
 		}
 		s_logFile = NULL;
 		s_logFileNumber++;
 		if (!openNextLogFile()) {
+			unlockSdCard();
 			return false;
 		}
 	}
 
 	if (fwrite(data, 1, length, s_logFile) != length) {
+		unlockSdCard();
 		return false;
 	}
 	s_logFileSize += length;
 	// Flush libc buffers and ask the filesystem to commit the write to the card.
 	if (fflush(s_logFile) != 0) {
+		unlockSdCard();
 		return false;
 	}
-	return fsync(fileno(s_logFile)) == 0;
+	const bool success = fsync(fileno(s_logFile)) == 0;
+	unlockSdCard();
+	return success;
 }
 
 /**
@@ -175,15 +205,21 @@ bool sdCardModule_rotate(void)
 	if (s_logFile == NULL) {
 		return false;
 	}
+	if (!lockSdCard()) {
+		return false;
+	}
 
 	// Synchronize the current file before making the new file active.
 	if (fflush(s_logFile) != 0 || fsync(fileno(s_logFile)) != 0 || fclose(s_logFile) != 0) {
 		s_logFile = NULL;
+		unlockSdCard();
 		return false;
 	}
 	s_logFile = NULL;
 	s_logFileNumber++;
-	return openNextLogFile();
+	const bool success = openNextLogFile();
+	unlockSdCard();
+	return success;
 }
 
 /**
@@ -191,6 +227,9 @@ bool sdCardModule_rotate(void)
  */
 void sdCardModule_deinit(void)
 {
+	if (s_sdMutex != NULL) {
+		lockSdCard();
+	}
 	if (s_logFile != NULL) {
 		fflush(s_logFile);
 		fclose(s_logFile);
@@ -202,4 +241,80 @@ void sdCardModule_deinit(void)
 		s_card = NULL;
 		spi_bus_free(s_hostId);
 	}
+	if (s_sdMutex != NULL) {
+		unlockSdCard();
+		vSemaphoreDelete(s_sdMutex);
+		s_sdMutex = NULL;
+	}
+}
+
+bool sdCardModule_isReady(void)
+{
+	return s_card != NULL && s_logFile != NULL;
+}
+
+bool sdCardModule_getLatestSessionFiles(char filenames[][32], size_t maximumFiles, size_t *fileCount)
+{
+	if (filenames == NULL || fileCount == NULL || maximumFiles == 0 || !sdCardModule_isReady()) {
+		return false;
+	}
+	if (!lockSdCard()) {
+		return false;
+	}
+
+	*fileCount = 0;
+	DIR *directory = opendir(s_sessionPath);
+	if (directory == NULL) {
+		unlockSdCard();
+		return false;
+	}
+
+	struct dirent *entry;
+	while ((entry = readdir(directory)) != NULL && *fileCount < maximumFiles) {
+		unsigned int number;
+		char suffix;
+		if (sscanf(entry->d_name, "log%u.log%c", &number, &suffix) == 1) {
+			snprintf(filenames[*fileCount], 32, "%.31s", entry->d_name);
+			(*fileCount)++;
+		}
+	}
+	closedir(directory);
+	unlockSdCard();
+	return true;
+}
+
+bool sdCardModule_readLatestSessionFile(const char *filename, uint32_t offset,
+	                                    void *buffer, size_t bufferSize, size_t *bytesRead)
+{
+	if (filename == NULL || buffer == NULL || bytesRead == NULL || bufferSize == 0 ||
+		!sdCardModule_isReady()) {
+		return false;
+	}
+	if (!lockSdCard()) {
+		return false;
+	}
+
+	unsigned int number;
+	char suffix;
+	if (sscanf(filename, "log%u.log%c", &number, &suffix) != 1) {
+		unlockSdCard();
+		return false;
+	}
+
+	char path[128];
+	snprintf(path, sizeof(path), "%s/%s", s_sessionPath, filename);
+	FILE *file = fopen(path, "rb");
+	if (file == NULL || fseek(file, (long)offset, SEEK_SET) != 0) {
+		if (file != NULL) {
+			fclose(file);
+		}
+		unlockSdCard();
+		return false;
+	}
+
+	*bytesRead = fread(buffer, 1, bufferSize, file);
+	const bool success = ferror(file) == 0;
+	fclose(file);
+	unlockSdCard();
+	return success;
 }

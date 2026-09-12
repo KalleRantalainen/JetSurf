@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Include all the helper applications here
-set(EXTRA_COMPONENT_DIRS "motorControl" "signalHandler" "throttleControl" "logger" "batteryControl" "bluetooth" "positionTracking")
+set(EXTRA_COMPONENT_DIRS "motorControl" "signalHandler" "throttleControl" "logger" "batteryControl" "bluetooth" "bleMobileInterface" "positionTracking")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(jetSurf)
