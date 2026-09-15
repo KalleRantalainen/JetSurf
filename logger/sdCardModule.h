@@ -33,6 +33,7 @@ bool sdCardModule_rotate(void);
 void sdCardModule_deinit(void);
 bool sdCardModule_isReady(void);
 bool sdCardModule_getLatestSessionFiles(char filenames[][32], size_t maximumFiles, size_t *fileCount);
+bool sdCardModule_getLatestSessionFileSize(const char *filename, uint32_t *size);
 bool sdCardModule_readLatestSessionFile(const char *filename, uint32_t offset,
 										void *buffer, size_t bufferSize, size_t *bytesRead);
 

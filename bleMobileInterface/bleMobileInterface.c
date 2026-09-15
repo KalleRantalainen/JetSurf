@@ -99,22 +99,29 @@ static bool mobileConnected(void)
     return mobileConnectionHandle != BLE_HS_CONN_HANDLE_NONE;
 }
 
-static void notifyCharacteristic(uint16_t valueHandle, const void *data, size_t length)
+static int notifyCharacteristic(uint16_t valueHandle,
+                                const void *data,
+                                size_t length)
 {
     if (!mobileConnected()) {
-        return;
+        return BLE_HS_ENOTCONN;
     }
 
     struct os_mbuf *buffer = ble_hs_mbuf_from_flat(data, length);
     if (buffer == NULL) {
-        ESP_LOGW(TAG, "Could not allocate BLE notification buffer");
-        return;
+        return BLE_HS_ENOMEM;
     }
 
-    const int result = ble_gatts_notify_custom(mobileConnectionHandle, valueHandle, buffer);
+    const int result =
+        ble_gatts_notify_custom(mobileConnectionHandle,
+                                 valueHandle,
+                                 buffer);
+
     if (result != 0) {
         os_mbuf_free_chain(buffer);
     }
+
+    return result;
 }
 
 static telemetryPacket_t makeTelemetryPacket(void)
@@ -157,11 +164,29 @@ static void telemetryTask(void *arg)
     }
 }
 
-static void sendLogPacket(logPacket_t *packet)
+static int sendLogPacket(logPacket_t *packet)
 {
     packet->sequence = logSequence++;
-    notifyCharacteristic(logValueHandle, packet,
-                         offsetof(logPacket_t, payload) + packet->payloadLength);
+
+    return notifyCharacteristic(
+        logValueHandle,
+        packet,
+        offsetof(logPacket_t, payload) + packet->payloadLength
+    );
+}
+
+static bool sendLogPacketBlocking(logPacket_t *packet)
+{
+    while (logNotificationsEnabled && mobileConnected()) {
+        const int result = sendLogPacket(packet);
+        if (result == 0) {
+            return true;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+
+    return false;
 }
 
 static void sendTransferMarker(uint8_t type)
@@ -189,50 +214,110 @@ static void transferLatestSession(void)
 
     char filenames[MOBILE_MAX_SESSION_FILES][32];
     size_t fileCount = 0;
-    if (!sdCardModule_getLatestSessionFiles(filenames, MOBILE_MAX_SESSION_FILES, &fileCount)) {
+
+    if (!sdCardModule_getLatestSessionFiles(
+            filenames,
+            MOBILE_MAX_SESSION_FILES,
+            &fileCount)) {
+
         sendTransferMarker(MOBILE_PACKET_ERROR);
         return;
     }
 
     uint8_t data[MOBILE_LOG_CHUNK_SIZE];
-    for (size_t fileIndex = 0; fileIndex < fileCount; ++fileIndex) {
-        logPacket_t packet = { .type = MOBILE_PACKET_FILE_START,
-                               .fileIndex = (uint16_t)fileIndex };
-        packet.payloadLength = (uint16_t)(strlen(filenames[fileIndex]) + 1U);
-        memcpy(packet.payload, filenames[fileIndex], packet.payloadLength);
-        sendLogPacket(&packet);
-        vTaskDelay(pdMS_TO_TICKS(20));
 
+    for (size_t fileIndex = 0; fileIndex < fileCount; ++fileIndex) {
+
+        /*
+         * FILE_START
+         */
+        uint32_t fileSize = 0;
+        if (!sdCardModule_getLatestSessionFileSize(
+                filenames[fileIndex],
+                &fileSize)) {
+            sendTransferMarker(MOBILE_PACKET_ERROR);
+            return;
+        }
+
+        logPacket_t packet = {
+            .type = MOBILE_PACKET_FILE_START,
+            .fileIndex = (uint16_t)fileIndex
+        };
+
+        const size_t filenameLength = strlen(filenames[fileIndex]) + 1U;
+        packet.payloadLength = (uint16_t)(sizeof(fileSize) + filenameLength);
+
+        memcpy(packet.payload, &fileSize, sizeof(fileSize));
+        memcpy(packet.payload + sizeof(fileSize),
+               filenames[fileIndex],
+               filenameLength);
+
+        if (!sendLogPacketBlocking(&packet)) {
+            return;
+        }
+
+
+        /*
+         * FILE_DATA
+         */
         uint32_t offset = 0;
-        while (logNotificationsEnabled) {
+
+        while (logNotificationsEnabled && mobileConnected()) {
+
             size_t bytesRead = 0;
-            if (!sdCardModule_readLatestSessionFile(filenames[fileIndex], offset,
-                                                    data, sizeof(data), &bytesRead)) {
+
+            if (!sdCardModule_readLatestSessionFile(
+                    filenames[fileIndex],
+                    offset,
+                    data,
+                    sizeof(data),
+                    &bytesRead)) {
+
                 sendTransferMarker(MOBILE_PACKET_ERROR);
                 return;
             }
+
             if (bytesRead == 0) {
                 break;
             }
 
-            packet = (logPacket_t){ .type = MOBILE_PACKET_FILE_DATA,
-                                    .fileIndex = (uint16_t)fileIndex,
-                                    .offset = offset,
-                                    .payloadLength = (uint16_t)bytesRead };
+            packet = (logPacket_t){
+                .type = MOBILE_PACKET_FILE_DATA,
+                .fileIndex = (uint16_t)fileIndex,
+                .offset = offset,
+                .payloadLength = (uint16_t)bytesRead
+            };
+
             memcpy(packet.payload, data, bytesRead);
-            sendLogPacket(&packet);
+
+            if (!sendLogPacketBlocking(&packet)) {
+                return;
+            }
+
             offset += (uint32_t)bytesRead;
-            vTaskDelay(pdMS_TO_TICKS(20));
         }
 
-        packet = (logPacket_t){ .type = MOBILE_PACKET_FILE_END,
-                                .fileIndex = (uint16_t)fileIndex,
-                                .offset = offset };
-        sendLogPacket(&packet);
+
+        /*
+         * FILE_END
+         */
+        packet = (logPacket_t){
+            .type = MOBILE_PACKET_FILE_END,
+            .fileIndex = (uint16_t)fileIndex,
+            .offset = offset
+        };
+
+        if (!sendLogPacketBlocking(&packet)) {
+            return;
+        }
     }
 
+    /*
+     * TRANSFER_END
+     */
     sendTransferMarker(MOBILE_PACKET_TRANSFER_END);
 }
+
 
 static void downloadTask(void *arg)
 {

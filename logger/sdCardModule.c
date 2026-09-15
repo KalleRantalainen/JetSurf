@@ -283,6 +283,34 @@ bool sdCardModule_getLatestSessionFiles(char filenames[][32], size_t maximumFile
 	return true;
 }
 
+bool sdCardModule_getLatestSessionFileSize(const char *filename, uint32_t *size)
+{
+	if (filename == NULL || size == NULL || !sdCardModule_isReady()) {
+		return false;
+	}
+	if (!lockSdCard()) {
+		return false;
+	}
+
+	unsigned int number;
+	char suffix;
+	if (sscanf(filename, "log%u.log%c", &number, &suffix) != 1) {
+		unlockSdCard();
+		return false;
+	}
+
+	char path[128];
+	snprintf(path, sizeof(path), "%s/%s", s_sessionPath, filename);
+	struct stat fileStatus;
+	const bool success = stat(path, &fileStatus) == 0 && fileStatus.st_size >= 0 &&
+	                     (uint64_t)fileStatus.st_size <= UINT32_MAX;
+	if (success) {
+		*size = (uint32_t)fileStatus.st_size;
+	}
+	unlockSdCard();
+	return success;
+}
+
 bool sdCardModule_readLatestSessionFile(const char *filename, uint32_t offset,
 	                                    void *buffer, size_t bufferSize, size_t *bytesRead)
 {
