@@ -13,6 +13,7 @@
 #define BLE_MASTER_THROTTLE_TIMEOUT_MS 250U
 
 void bleMaster_init(void);
+void bleMaster_startScan(void);
 uint8_t bleMaster_getThrottle(void);
 bool bleMaster_isConnected(void);
 

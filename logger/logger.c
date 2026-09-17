@@ -56,8 +56,8 @@ void logger_init(logger_output_t output)
         return;
     }
 
-    // Create thread safe log queue for a maximum of 32 log lines
-    s_logQueue = xQueueCreate(32, sizeof(log_entry_t));
+    // Create thread safe log queue for a maximum of 128 log lines
+    s_logQueue = xQueueCreate(128, sizeof(log_entry_t));
     s_output = output;
     s_rotationRequested = false;
     const bool sdCardRequested =

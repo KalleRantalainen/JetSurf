@@ -15,7 +15,7 @@
 #define GPS_TX_GPIO GPIO_NUM_17
 // Chinese seller says the default baudrate is 9600,
 // but it seems to ne 38400 instead...
-#define GPS_BAUD_RATE 38400
+#define GPS_BAUD_RATE 38400 //38400
 
 // GPS measurements will contain this data
 typedef struct {

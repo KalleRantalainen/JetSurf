@@ -28,11 +28,6 @@ static void readLocal(void)
     // cycle, so it can be queried every 10 cycles for example
     static int cycle = 0;
 
-    // Make sure the CAN communication is initialized
-    if (!canHelpers_init(BATTERY_CAN_TX_GPIO, BATTERY_CAN_RX_GPIO)) {
-        LOG_ERR("CAN initialization failed");
-    }
-
     // Voltage and Current change fast and are 
     // essential to monitor closely to protect
     // all the components
