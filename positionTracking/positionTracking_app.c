@@ -46,7 +46,18 @@ static void writeGlobal(void)
  */
 void positionTracking_appCyclicEntryPoint(void)
 {
-    writeGlobal();
+    // GPS does not like reading every cycle. It
+    // seems it does not like 100ms but works with
+    // 250ms interval. However, as the refreshment
+    // rate of the module is 1Hz, lets just read
+    // the gps data evert 10 cycles (1s with current
+    // cycle time)
+    static int cycleCount = 0;
+    cycleCount++;
+    if (cycleCount % 10 == 0) {
+        writeGlobal();
+        cycleCount = 0;
+    }
 }
 
 /**

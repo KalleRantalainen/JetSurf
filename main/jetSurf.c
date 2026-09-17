@@ -25,7 +25,7 @@
 //           BLE <-> Mobile connection?
 
 // Application cycle in milliseconds
-static const int APPLICATION_CYCLE_MS = 100;
+static const int APPLICATION_CYCLE_MS = 250;
 static esp_timer_handle_t s_periodicTimer;
 
 /**

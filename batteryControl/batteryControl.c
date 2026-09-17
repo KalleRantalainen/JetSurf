@@ -168,86 +168,115 @@ void checkProtectionLimits(void)
 // Use 0x40 as the ESP32's id
 static uint8_t ownId = 0x40;
 
+
 /**
- * Helper function to sends a query frame and to get
- * a response frame.
+ * Helper function to send a query frame and get the matching response.
+ *
+ * Before sending the request, discard any frames already waiting in the
+ * RX queue. This prevents a delayed response to a previous request from
+ * being mistaken for the response to the current request.
+ *
  * @param battery the battery to query
  * @param dataQueryId the query id to put into the frame id, for example 0x90
- * @param queryName string to help in debugging, indicates what was queried
- * @param recvFrame data structure to which to append the received frame
+ * @param queryName string to help in debugging
+ * @param recvFrame data structure to which to store the received frame
  * @return true if the expected frame was received, false otherwise
  */
-static bool requestBatteryFrame(Battery *battery, uint8_t dataQueryId,
+static bool requestBatteryFrame(Battery *battery,
+                                 uint8_t dataQueryId,
                                  const char *queryName,
                                  canHelpers_frame_t *recvFrame)
 {
     if (battery == NULL || recvFrame == NULL) {
-        LOG_ERR("Cannot send %s query with a NULL argument",
-                queryName);
+        LOG_ERR("Cannot send %s query with a NULL argument", queryName);
         return false;
     }
 
-    // Construct the query frame
     const uint8_t data[8] = {0};
+
     const uint32_t canId =
         ((uint32_t)battery->priority << 24) |
         ((uint32_t)dataQueryId << 16) |
         ((uint32_t)battery->bmsId << 8) |
         (uint32_t)ownId;
-    // Construct the expected reposnse id.
+
     const uint32_t expectedResponseId =
         ((uint32_t)battery->priority << 24) |
         ((uint32_t)dataQueryId << 16) |
         ((uint32_t)ownId << 8) |
         (uint32_t)battery->bmsId;
 
-    // LOG_INFO("batteryControl",
-    //          "Sending %s query: id=0x%08lx, expected response=0x%08lx",
-    //          queryName, (unsigned long)canId,
-    //          (unsigned long)expectedResponseId);
-    
-    // Send the query frame, return false if sending fails
+    /*
+     * Remove frames left over from previous requests.
+     *
+     * Since this application performs one request at a time, anything
+     * already in the queue belongs to an older transaction.
+     */
+    canHelpers_frame_t staleFrame;
+
+    while (canHelpers_receive(&staleFrame, 0)) {
+        LOG_WARN("Discarding stale CAN frame: id=0x%08lx",
+                 (unsigned long)staleFrame.id);
+    }
+
+    /*
+     * Send the request.
+     */
     if (!canHelpers_send(canId, data, sizeof(data), pdMS_TO_TICKS(10))) {
         LOG_ERR("Failed to send %s query: id=0x%08lx, BMS=0x%02x",
-                queryName, (unsigned long)canId, battery->bmsId);
+                queryName,
+                (unsigned long)canId,
+                battery->bmsId);
         return false;
     }
 
-    // Timeout for getting the response frame
-    const TickType_t timeoutTicks = pdMS_TO_TICKS(10);
+    /*
+     * Wait for the response.
+     *
+     * Use a somewhat longer timeout because the BMS response does not
+     * necessarily arrive immediately after the request.
+     */
+    const TickType_t timeoutTicks = pdMS_TO_TICKS(50);
     const TickType_t startTicks = xTaskGetTickCount();
 
-    // Try to receive the reponse frame until time runs out.
     while ((xTaskGetTickCount() - startTicks) < timeoutTicks) {
-        const TickType_t elapsedTicks = xTaskGetTickCount() - startTicks;
-        const TickType_t remainingTicks = timeoutTicks - elapsedTicks;
 
-        // Break the loop if the reciveiving fails
+        const TickType_t elapsedTicks =
+            xTaskGetTickCount() - startTicks;
+
+        const TickType_t remainingTicks =
+            timeoutTicks - elapsedTicks;
+
         if (!canHelpers_receive(recvFrame, remainingTicks)) {
             break;
         }
 
-        // LOG_INFO("batteryControl",
-        //          "Received %s frame: id=0x%08lx, extended=%s, dlc=%u, "
-        //          "data=%02x %02x %02x %02x %02x %02x %02x %02x",
-        //          queryName, (unsigned long)recvFrame->id,
-        //          recvFrame->extended ? "yes" : "no", recvFrame->dataLength,
-        //          recvFrame->data[0], recvFrame->data[1], recvFrame->data[2],
-        //          recvFrame->data[3], recvFrame->data[4], recvFrame->data[5],
-        //          recvFrame->data[6], recvFrame->data[7]);
-        
-        // Return true if the frame received had the expected id and data lenght
-        if (recvFrame->extended && recvFrame->id == expectedResponseId &&
+        /*
+         * We received a frame, but it may be a response to another
+         * request. Only accept the exact response we're waiting for.
+         */
+        if (recvFrame->extended &&
+            recvFrame->id == expectedResponseId &&
             recvFrame->dataLength == 8) {
             return true;
         }
+
+        LOG_WARN(
+            "Ignoring unrelated CAN frame while waiting for %s: "
+            "expected=0x%08lx, received=0x%08lx",
+            queryName,
+            (unsigned long)expectedResponseId,
+            (unsigned long)recvFrame->id);
     }
 
-    // Return false if no valid response frame was received
     LOG_ERR("No valid %s response from BMS %u; expected id=0x%08lx",
-            queryName, battery->bmsId, (unsigned long)expectedResponseId);
+            queryName,
+            battery->bmsId,
+            (unsigned long)expectedResponseId);
+
     return false;
 }
+
 
 /**
  * Reads SOC, total battery voltage and current.
