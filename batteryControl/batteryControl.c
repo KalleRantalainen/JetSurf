@@ -112,7 +112,7 @@ static void checkTemperatureLimits(void)
  * Check the cell voltage spread of each battery.
  * Set the flags if the difference becomes too high.
  */
-void checkCellVoltageLimits(void)
+static void checkCellVoltageLimits(void)
 {
     if (inputSignal_battery1_cellVoltageDiff >= parameter_hardStopCellVoltageDiffMv) {
         outputSignal_battery1_voltageDifferenceTooHigh = true;
@@ -147,6 +147,45 @@ void checkCellVoltageLimits(void)
     }
 }
 
+static void checkTotalVoltageLimits(void)
+{
+    if (inputSignal_battery1_voltage < minTotalVoltage) {
+        outputSignal_battery1_totalVoltageTooLow = true;
+        LOG_WARN("Battery 1 total voltage is too low, limit: %.2f V, current: %.2f V",
+                 (float)minTotalVoltage,
+                 inputSignal_battery1_voltage);
+    } else {
+        outputSignal_battery1_totalVoltageTooLow = false;
+    }
+
+    if (inputSignal_battery2_voltage < minTotalVoltage) {
+        outputSignal_battery2_totalVoltageTooLow = true;
+        LOG_WARN("Battery 2 total voltage is too low, limit: %.2f V, current: %.2f V",
+                 (float)minTotalVoltage,
+                 inputSignal_battery2_voltage);
+    } else {
+        outputSignal_battery2_totalVoltageTooLow = false;
+    }
+
+    if (inputSignal_battery1_minCellVoltage < minCellVoltage) {
+        outputSignal_battery1_cellVoltageTooLow = true;
+        LOG_WARN("Battery 1 cell voltage is too low, limit: %.2f V, current: %.2f V",
+                 minCellVoltage,
+                 inputSignal_battery1_minCellVoltage);
+    } else {
+        outputSignal_battery1_cellVoltageTooLow = false;
+    }
+
+    if (inputSignal_battery2_minCellVoltage < minCellVoltage) {
+        outputSignal_battery2_cellVoltageTooLow = true;
+        LOG_WARN("Battery 2 cell voltage is too low, limit: %.2f V, current: %.2f V",
+                 minCellVoltage,
+                 inputSignal_battery2_minCellVoltage);
+    } else {
+        outputSignal_battery2_cellVoltageTooLow = false;
+    }
+}
+
 /**
  * Checks if we are pulling too much current from the
  * batteries, or if the temps are getting too high etc.
@@ -156,6 +195,7 @@ void checkProtectionLimits(void)
     checkCurrentLimits();
     checkTemperatureLimits();
     checkCellVoltageLimits();
+    checkTotalVoltageLimits();
 }
 
 // The Daly BMS id'S follow a pattern. When querying

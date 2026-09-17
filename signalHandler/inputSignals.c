@@ -19,6 +19,7 @@ float inputSignal_battery1_soc;
 float inputSignal_battery1_highestTemp;
 uint8_t inputSignal_battery1_highestTempSensor;
 float inputSignal_battery1_cellVoltageDiff;
+float inputSignal_battery1_minCellVoltage;
 
 float inputSignal_battery2_current;
 float inputSignal_battery2_voltage;
@@ -26,3 +27,4 @@ float inputSignal_battery2_soc;
 float inputSignal_battery2_highestTemp;
 uint8_t inputSignal_battery2_highestTempSensor;
 float inputSignal_battery2_cellVoltageDiff;
+float inputSignal_battery2_minCellVoltage;

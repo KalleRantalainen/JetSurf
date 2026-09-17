@@ -53,6 +53,8 @@ uint8_t getHighestTempSensor(Battery* battery);
 // Get the absolute voltage difference between cells that
 // have the highest differece, unit is mV
 float getVoltageDiff(Battery* battery);
+// Get the lowest cell voltage in volts
+float getMinCellVoltage(Battery* battery);
 
 
 #endif // BATTERY_H_

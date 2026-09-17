@@ -14,4 +14,7 @@ static const uint16_t parameter_maxTemperature = 50;          // Maximum tempera
 
 static const float parameter_hardStopCellVoltageDiffMv = 150; // Maximum cell voltage (milliVolts) difference before stopping the motors
 
+static const uint8_t minTotalVoltage = 40; // Volts, 2.5V per cell.
+static const float minCellVoltage = 2.5;   // Minimum 2.5V for any singular cell
+
 #endif // PARAMETERS_H

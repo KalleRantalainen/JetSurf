@@ -17,11 +17,15 @@ extern bool outputSignal_battery1_currentIsGettingTooHigh;  // Actions to limit 
 extern bool outputSignal_battery1_currentIsTooHigh;         // Current drawn from battery 1 is too high, immediate action to lower the current should be taken
 extern bool outputSignal_battery1_temperatureTooHigh;       // Temperature of either battery 1 temp sensor is too high
 extern bool outputSignal_battery1_voltageDifferenceTooHigh; // Voltage difference between any too cells of battery 1 is too high
+extern bool outputSignal_battery1_totalVoltageTooLow;       // The total voltage of the pack is too low
+extern bool outputSignal_battery1_cellVoltageTooLow;        // Any cell is at too low of a voltage
 
 extern bool outputSignal_battery2_currentIsGettingTooHigh;  // Actions to limit further current increase should be taken
 extern bool outputSignal_battery2_currentIsTooHigh;         // Current drawn from battery 2 is too high, lower it NOW
 extern bool outputSignal_battery2_temperatureTooHigh;       // Temperature of either battery 2 temp sensor is too high
 extern bool outputSignal_battery2_voltageDifferenceTooHigh; // Voltage difference between any too cells of battery 2 is too high
+extern bool outputSignal_battery2_totalVoltageTooLow;       // The total voltage of the pack is too low
+extern bool outputSignal_battery2_cellVoltageTooLow;        // Any cell is at too low of a voltage
 
 /* --- Control loop monitoring --- */
 extern int64_t outputSignal_controlLoopExecTimeUs;

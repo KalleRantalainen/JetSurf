@@ -97,3 +97,8 @@ float getVoltageDiff(Battery* battery)
     }
     return (float)diff / 10.0f;
 }
+
+float getMinCellVoltage(Battery* battery)
+{
+    return (float)battery->minCellVoltage / 1000.0f;
+}

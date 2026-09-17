@@ -93,7 +93,11 @@ uint8_t getProtectedThrottle(void)
         outputSignal_battery1_temperatureTooHigh ||
         outputSignal_battery2_temperatureTooHigh ||
         outputSignal_battery1_voltageDifferenceTooHigh ||
-        outputSignal_battery2_voltageDifferenceTooHigh;
+        outputSignal_battery2_voltageDifferenceTooHigh ||
+        outputSignal_battery1_totalVoltageTooLow ||
+        outputSignal_battery2_totalVoltageTooLow ||
+        outputSignal_battery1_cellVoltageTooLow ||
+        outputSignal_battery2_cellVoltageTooLow;
 
     // If no flags active, then the valid throttle is used as is
     if (!batteryProtectionActive) {
@@ -118,6 +122,12 @@ uint8_t getProtectedThrottle(void)
         // If temps get out of hand, block the throttle entirely.
         // Takes a long time to cool batteries in tight space with
         // no active cooling.
+        reductionPercent = 100;
+    } else if (outputSignal_battery1_totalVoltageTooLow ||
+               outputSignal_battery2_totalVoltageTooLow ||
+               outputSignal_battery1_cellVoltageTooLow ||
+               outputSignal_battery2_cellVoltageTooLow) {
+        // Low pack or cell voltage requires an immediate stop.
         reductionPercent = 100;
     } else if (outputSignal_battery1_voltageDifferenceTooHigh ||
                outputSignal_battery2_voltageDifferenceTooHigh) {

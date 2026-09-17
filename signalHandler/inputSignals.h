@@ -25,6 +25,7 @@ extern float inputSignal_battery1_soc;                 // SOC% of battery 1, for
 extern float inputSignal_battery1_highestTemp;         // Temperature in Celcius from the sensor with highest reading
 extern uint8_t inputSignal_battery1_highestTempSensor; // The sensor that has the highest reading (sensor 1 or 2)
 extern float inputSignal_battery1_cellVoltageDiff;     // Highest voltage difference between any two cells in volts
+extern float inputSignal_battery1_minCellVoltage;      // Lowest cell voltage in volts
 
 extern float inputSignal_battery2_current;             // Current from/to battery 2
 extern float inputSignal_battery2_voltage;             // Total voltage of battery 2
@@ -32,5 +33,6 @@ extern float inputSignal_battery2_soc;                 // SOC% of battery 2, for
 extern float inputSignal_battery2_highestTemp;         // Temperature in Celcius from the sensor with highest reading
 extern uint8_t inputSignal_battery2_highestTempSensor; // The sensor that has the highest reading (sensor 1 or 2)
 extern float inputSignal_battery2_cellVoltageDiff;     // Highest voltage difference between any two cells in volts
+extern float inputSignal_battery2_minCellVoltage;      // Lowest cell voltage in volts
 
 #endif // INPUT_SIGNALS_H
