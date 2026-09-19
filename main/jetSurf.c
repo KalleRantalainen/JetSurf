@@ -14,6 +14,7 @@
 #include "logger_app.h"
 #include "bluetooth_app.h"
 #include "positionTracking_app.h"
+#include "hmi_app.h"
 
 #include "outputSignals.h"
 
@@ -44,6 +45,7 @@ static void applicationTimerCallback(void *arg)
     motorControl_appCyclicEntryPoint();
     batteryControl_appCyclicEntryPoint();
     positionTracking_appCyclicEntryPoint();
+    hmi_appCyclicEntryPoint();
 
     int64_t executionTimeUs = esp_timer_get_time() - startTime;
     outputSignal_controlLoopExecTimeUs = executionTimeUs;
@@ -102,6 +104,7 @@ static void applicationInit(void)
     throttleControl_appInitAll();
     batteryControl_appInitAll();
     positionTracking_appInitAll();
+    hmi_appInitAll();
 }
 
 /**

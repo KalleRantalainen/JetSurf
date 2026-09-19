@@ -28,7 +28,7 @@ static void toggleGpio(led* led)
  */
 void initLed(led* led, int gpioPin)
 {
-	if (led == NULL || !gpio_is_valid_gpio((gpio_num_t)gpioPin)) {
+    if (led == NULL || gpioPin < 0 || gpioPin >= GPIO_NUM_MAX) {
 		return;
 	}
 
@@ -38,6 +38,7 @@ void initLed(led* led, int gpioPin)
 	led->onCycles = 0;
 	led->offCycles = 0;
     led->ledOn = false;
+    led->currentCycles = 0;
 
 	const gpio_config_t config = {
 		.pin_bit_mask = 1ULL << gpioPin,
@@ -63,6 +64,10 @@ void initLed(led* led, int gpioPin)
  */
 void startBlink(led* led, int cycleCount)
 {
+    if (led == NULL || !led->initialized || cycleCount <= 0) {
+        return;
+    }
+
     // Set the blinking values, blinker handles blinking
     led->blinking = true;
     led->onCycles = cycleCount;
@@ -75,11 +80,24 @@ void startBlink(led* led, int cycleCount)
  */
 void stopBlink(led* led)
 {
+    if (led == NULL || !led->initialized) {
+        return;
+    }
+
     led->blinking = false;
 }
 
+/**
+ * Blink the led according to their animation plan
+ * @param led pointer to the led to be blinked
+ * @return void
+ */
 void blinker(led* led)
 {
+    if (led == NULL || !led->initialized) {
+        return;
+    }
+
     if (led->blinking) {
         // Led is blinking, check if the gpio needs to be toggled
         if (led->ledOn) {
@@ -87,13 +105,13 @@ void blinker(led* led)
             if (led->currentCycles >= led->onCycles) {
                 // Led has been on for long enough, turn it off
                 // (toggle updates the ledOn param)
-                toggleGpio(&led);
+                toggleGpio(led);
             }
         } else {
             // Led is off, check if it needs to be turned on
             if (led->currentCycles >= led->offCycles) {
                 // Led should be turned on
-                toggleGpio(&led);
+                toggleGpio(led);
             }
         }
     } else {
@@ -102,7 +120,7 @@ void blinker(led* led)
         // the state the led is still on, it means that the blinkiung
         // was exited when the led was on. Turn it off
         if (led->ledOn) {
-            toggleGpio(&led);
+            toggleGpio(led);
         }
     }
     // Increment led cycles.

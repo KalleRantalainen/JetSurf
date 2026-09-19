@@ -1,6 +1,6 @@
 idf_component_register(SRCS "jetSurf.c"
                     INCLUDE_DIRS "."
-                    REQUIRES motorControl throttleControl logger batteryControl bluetooth esp_timer positionTracking)
+                    REQUIRES motorControl throttleControl logger batteryControl bluetooth esp_timer positionTracking hmi)
 
 # Define LOG_TAG macro for every source file so that we do
 # not have to define it manually in every file.

@@ -1,8 +1,11 @@
 #include <stdio.h>
 
 #include "hmi_app.h"
+#include "ledControl.h"
 
 #include "logger.h"
+#include "outputSignals.h"
+#include "sdCardModule.h"
 
 /**
  * Entry for the main interrupt loop. Does everything the
@@ -10,7 +13,8 @@
  */
 void hmi_appCyclicEntryPoint(void)
 {
-    // Implement
+    outputSignal_sdCardWritingOk = sdCardModule_isReady();
+    cycleLeds();
 }
 
 /**
@@ -18,5 +22,5 @@ void hmi_appCyclicEntryPoint(void)
  */
 void hmi_appInitAll(void)
 {
-    
+    initializeLeds();
 }

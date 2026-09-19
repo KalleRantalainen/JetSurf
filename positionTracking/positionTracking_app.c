@@ -3,6 +3,7 @@
 #include "positionTracking_app.h"
 
 #include "inputSignals.h"
+#include "outputSignals.h"
 #include "logger.h"
 #include "neoM9Ngps.h"
 
@@ -36,7 +37,9 @@ static void writeGlobal(void)
         }
 
         lastFixTimestamp = position.fixTimestampMs;
+        outputSignal_gpsHasFix = true;
     } else {
+        outputSignal_gpsHasFix = false;
         LOG_WARN("GPS has no fix\n");
     }
 }

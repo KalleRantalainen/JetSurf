@@ -25,6 +25,6 @@ bool outputSignal_battery2_cellVoltageTooLow;
 int64_t outputSignal_controlLoopExecTimeUs;
 
 /* --- LED signals for HMI interface to indicate the state of the control system --- */
-extern bool outputSignal_gpsHasFix;
-extern bool outputSignal_sdCardWritingOk;
-extern bool outputSignal_bleThrottleOk;
+bool outputSignal_gpsHasFix = false;
+bool outputSignal_sdCardWritingOk = false;
+bool outputSignal_bleThrottleOk = false;
