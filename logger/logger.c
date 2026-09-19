@@ -7,12 +7,14 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
 #include "sdCardModule.h"
 
 // Log queue, all messages added to this queue first
 static QueueHandle_t s_logQueue = NULL;
 static logger_output_t s_output = LOGGER_OUTPUT_TERMINAL;
-static volatile bool s_rotationRequested = false;
+static uint32_t s_pendingRotations = 0;
+static portMUX_TYPE s_rotationMux = portMUX_INITIALIZER_UNLOCKED;
 
 /**
  * Create a timestamp from the current monotonic clock time.
@@ -59,7 +61,9 @@ void logger_init(logger_output_t output)
     // Create thread safe log queue for a maximum of 128 log lines
     s_logQueue = xQueueCreate(128, sizeof(log_entry_t));
     s_output = output;
-    s_rotationRequested = false;
+    taskENTER_CRITICAL(&s_rotationMux);
+    s_pendingRotations = 0;
+    taskEXIT_CRITICAL(&s_rotationMux);
     const bool sdCardRequested =
         s_output == LOGGER_OUTPUT_SD_CARD ||
         s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL;
@@ -139,6 +143,9 @@ void logger_drainQueue(void)
         if (lineLength <= 0) {
             continue;
         }
+        if ((size_t)lineLength >= sizeof(line)) {
+            lineLength = (int)sizeof(line) - 1;
+        }
 
         if (s_output == LOGGER_OUTPUT_SD_CARD ||
             s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) {
@@ -152,12 +159,19 @@ void logger_drainQueue(void)
         }
     }
 
-    if (s_rotationRequested) {
-        s_rotationRequested = false;
-        if ((s_output == LOGGER_OUTPUT_SD_CARD ||
-             s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) &&
-            !sdCardModule_rotate()) {
-            printf("SD card log rotation failed.\n");
+    uint32_t rotations;
+    taskENTER_CRITICAL(&s_rotationMux);
+    rotations = s_pendingRotations;
+    s_pendingRotations = 0;
+    taskEXIT_CRITICAL(&s_rotationMux);
+
+    if (s_output == LOGGER_OUTPUT_SD_CARD ||
+        s_output == LOGGER_OUTPUT_SD_CARD_AND_TERMINAL) {
+        while (rotations-- > 0) {
+            if (!sdCardModule_rotate()) {
+                printf("SD card log rotation failed.\n");
+                break;
+            }
         }
     }
 }
@@ -167,5 +181,9 @@ void logger_drainQueue(void)
  */
 void logger_requestRotation(void)
 {
-    s_rotationRequested = true;
+    taskENTER_CRITICAL(&s_rotationMux);
+    if (s_pendingRotations < UINT32_MAX) {
+        s_pendingRotations++;
+    }
+    taskEXIT_CRITICAL(&s_rotationMux);
 }

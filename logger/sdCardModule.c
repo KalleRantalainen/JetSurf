@@ -166,7 +166,16 @@ bool sdCardModule_write(const char *data, size_t length)
 		return false;
 	}
 
-	if (s_logFileSize > 0 && s_logFileSize + length > SD_CARD_MAX_LOG_FILE_SIZE) {
+	// Re-read the stream position so the limit is based on the actual file,
+	// not only on the counter maintained by this process.
+	long filePosition = ftell(s_logFile);
+	if (filePosition >= 0) {
+		s_logFileSize = (size_t)filePosition;
+	}
+
+	if (s_logFileSize >= SD_CARD_MAX_LOG_FILE_SIZE ||
+	    (s_logFileSize > 0 &&
+	     length > SD_CARD_MAX_LOG_FILE_SIZE - s_logFileSize)) {
 		// Close the completed file before opening the next numbered file.
 		if (fclose(s_logFile) != 0) {
 			s_logFile = NULL;
