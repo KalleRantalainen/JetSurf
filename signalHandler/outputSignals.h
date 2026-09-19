@@ -30,4 +30,9 @@ extern bool outputSignal_battery2_cellVoltageTooLow;        // Any cell is at to
 /* --- Control loop monitoring --- */
 extern int64_t outputSignal_controlLoopExecTimeUs;
 
+/* --- LED signals for HMI interface to indicate the state of the control system --- */
+extern bool outputSignal_gpsHasFix;
+extern bool outputSignal_sdCardWritingOk;
+extern bool outputSignal_bleThrottleOk;
+
 #endif // OUTPUT_SIGNALS_H
